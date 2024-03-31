@@ -1,8 +1,7 @@
 package router
 
 import (
-	"app/config"
-	"app/middlewares"
+	"app/controller"
 	"log"
 	"net/http"
 	"time"
@@ -10,7 +9,6 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
-	"github.com/go-chi/jwtauth/v5"
 	"github.com/go-chi/render"
 )
 
@@ -38,7 +36,8 @@ func Router() http.Handler {
 	})
 	app.Use(cors.Handler)
 
-	middlewares := middlewares.NewMiddlewares()
+	// middlewares := middlewares.NewMiddlewares()
+	productController := controller.NewProductController()
 
 	app.Route("/product/api/v1", func(r chi.Router) {
 		r.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
@@ -48,9 +47,13 @@ func Router() http.Handler {
 			render.JSON(w, r, res)
 		})
 		r.Route("/protected", func(protected chi.Router) {
-			protected.Use(jwtauth.Verifier(config.GetJWT()))
-			protected.Use(jwtauth.Authenticator(config.GetJWT()))
-			protected.Use(middlewares.ValidateExpAccessToken())
+			// protected.Use(jwtauth.Verifier(config.GetJWT()))
+			// protected.Use(jwtauth.Authenticator(config.GetJWT()))
+			// protected.Use(middlewares.ValidateExpAccessToken())
+
+			protected.Route("/product", func(product chi.Router) {
+				product.Post("/", productController.CreateProduct)
+			})
 		})
 	})
 

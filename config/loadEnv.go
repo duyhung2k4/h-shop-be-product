@@ -15,15 +15,15 @@ func loadEnv() error {
 	}
 
 	appPort = os.Getenv(APP_PORT)
-	appName = os.Getenv(APP_NAME)
-	dbHost = os.Getenv(DB_HOST)
+	// appName = os.Getenv(APP_NAME)
+	// dbHost = os.Getenv(DB_HOST)
 	// dbPort = os.Getenv(DB_PORT)
-	dbName = os.Getenv(DB_NAME)
-	dbPassword = os.Getenv(DB_PASSWORD)
-	dbUser = os.Getenv(DB_USER)
+	dbWriteName = os.Getenv(DB_WRITE_NAME)
+	// dbPassword = os.Getenv(DB_PASSWORD)
+	// dbUser = os.Getenv(DB_USER)
 	urlRedis = os.Getenv(URL_REDIS)
 	host = os.Getenv(HOST)
-	mongodbLocal = os.Getenv(MONGO_DB_LOCAL)
+	mongodbWriteLocal = os.Getenv(MONGO_DB_WRITE_LOCAL)
 
 	return nil
 }
