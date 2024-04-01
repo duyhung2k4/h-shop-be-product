@@ -53,6 +53,8 @@ func Router() http.Handler {
 
 			protected.Route("/product", func(product chi.Router) {
 				product.Post("/", productController.CreateProduct)
+				product.Put("/", productController.UpdateProduct)
+				product.Delete("/", productController.DeleteProduct)
 			})
 		})
 	})

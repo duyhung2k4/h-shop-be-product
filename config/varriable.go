@@ -8,16 +8,16 @@ import (
 )
 
 const (
-	APP_PORT             = "APP_PORT"
-	APP_NAME             = "APP_NAME"
-	DB_HOST              = "DB_HOST"
-	DB_PORT              = "DB_PORT"
-	DB_WRITE_NAME        = "DB_WRITE_NAME"
-	DB_PASSWORD          = "DB_PASSWORD"
-	DB_USER              = "DB_USER"
-	URL_REDIS            = "URL_REDIS"
-	HOST                 = "HOST"
-	MONGO_DB_WRITE_LOCAL = "MONGO_DB_WRITE_LOCAL"
+	APP_PORT       = "APP_PORT"
+	APP_NAME       = "APP_NAME"
+	DB_HOST        = "DB_HOST"
+	DB_PORT        = "DB_PORT"
+	DB_NAME        = "DB_NAME"
+	DB_PASSWORD    = "DB_PASSWORD"
+	DB_USER        = "DB_USER"
+	URL_REDIS      = "URL_REDIS"
+	HOST           = "HOST"
+	MONGO_DB_LOCAL = "MONGO_DB_LOCAL"
 )
 
 var (
@@ -25,16 +25,16 @@ var (
 	// appName string
 	// dbHost  string
 	// dbPort     string
-	dbWriteName string
+	dbName string
 	// dbPassword        string
 	// dbUser            string
-	urlRedis          string
-	host              string
-	mongodbWriteLocal string
+	urlRedis     string
+	host         string
+	mongodbLocal string
 
-	dbWrite *mongo.Database
-	rdb     *redis.Client
-	jwt     *jwtauth.JWTAuth
+	db  *mongo.Database
+	rdb *redis.Client
+	jwt *jwtauth.JWTAuth
 
 	clientProfile *grpc.ClientConn
 )

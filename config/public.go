@@ -7,8 +7,8 @@ import (
 	"google.golang.org/grpc"
 )
 
-func GetDBWrite() *mongo.Database {
-	return dbWrite
+func GetDB() *mongo.Database {
+	return db
 }
 
 func GetRDB() *redis.Client {

@@ -1,0 +1,26 @@
+version: '3.3'
+
+volumes:
+  disk:
+    driver_opts:
+      device: /usr/local/data/h-shop-product-disk/
+      type: none
+      o: bind
+
+services:
+  build:
+    container_name: service-h-shop-be-product
+    hostname: host-h-shop-be-product
+    image: h-shop-be-product:v1
+    build: 
+      dockerfile: Dockerfile
+      context: .
+    network_mode: host
+    volumes:
+      - disk:/usr/local/bin/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "18883:18883"
+    stdin_open: true
+    tty: true

@@ -14,8 +14,8 @@ func init() {
 	loadEnv()
 	jwt = jwtauth.New("HS256", []byte("h-shop"), nil)
 
-	if err := connectMongoDBWrite(migrate); err != nil {
-		log.Fatalf("Error connect MongoDB Write: %v", err)
+	if err := connectMongoDB(migrate); err != nil {
+		log.Fatalf("Error connect MongoDB : %v", err)
 	}
 	connectRedis()
 	connectGPRC()
