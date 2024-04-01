@@ -15,3 +15,12 @@ test_get_data:
 	http://localhost:18883/product/api/v1/ping
 run_server:
 	go run .
+gen_code_grpc:
+	protoc \
+		--go_out=grpc \
+		--go_opt=paths=source_relative \
+    	--go-grpc_out=grpc \
+		--go-grpc_opt=paths=source_relative \
+    	proto/*.proto
+export_go:
+	export PATH="$PATH:$(go env GOPATH)/bin"
