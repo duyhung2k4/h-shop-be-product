@@ -39,7 +39,7 @@ func (s *productService) CheckPermissionOfReformist(profileId uint, productId st
 		return false, nil
 	}
 
-	if product["profileId"] != profileId {
+	if uint(product["profileId"].(int64)) != profileId {
 		return false, nil
 	}
 

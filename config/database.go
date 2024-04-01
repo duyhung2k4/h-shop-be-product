@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/redis/go-redis/v9"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -28,6 +29,16 @@ func connectMongoDB(migrate bool) error {
 		// Create Collection
 		db.CreateCollection(context.Background(), string(model.PRODUCT))
 		db.CreateCollection(context.Background(), string(model.SALE))
+
+		// Index
+		// Index - Product
+		if _, err := db.Collection(string(model.PRODUCT)).
+			Indexes().
+			CreateMany(context.Background(), []mongo.IndexModel{
+				{Keys: bson.M{"name": 1}, Options: options.Index().SetName("idx_name")},
+			}); err != nil {
+			log.Fatalln(err)
+		}
 	}
 
 	return nil

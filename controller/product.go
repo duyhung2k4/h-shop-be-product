@@ -30,6 +30,15 @@ func (c *productController) CreateProduct(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	tokenString := strings.Split(r.Header.Get("Authorization"), " ")[1]
+	mapDataRequest, errMapData := c.utils.JwtDecode(tokenString)
+	if errMapData != nil {
+		internalServerError(w, r, errMapData)
+		return
+	}
+	profileId := uint(mapDataRequest["profile_id"].(float64))
+	product["profileId"] = profileId
+
 	newProduct, err := c.productService.CreateProduct(product)
 	if err != nil {
 		internalServerError(w, r, err)
@@ -56,23 +65,20 @@ func (c *productController) UpdateProduct(w http.ResponseWriter, r *http.Request
 
 	tokenString := strings.Split(r.Header.Get("Authorization"), " ")[1]
 	mapDataRequest, errMapData := c.utils.JwtDecode(tokenString)
-
 	if errMapData != nil {
 		internalServerError(w, r, errMapData)
 		return
 	}
-
 	profileId := uint(mapDataRequest["profile_id"].(float64))
 	productId := product["_id"].(string)
 
-	isUpdated, errCheck := c.productService.CheckPermissionOfReformist(profileId, productId)
+	isPermission, errCheck := c.productService.CheckPermissionOfReformist(profileId, productId)
 	if errCheck != nil {
 		handleError(w, r, errCheck, 400)
 		return
 	}
-
-	if !isUpdated {
-		handleError(w, r, errors.New("Not permission"), 401)
+	if !isPermission {
+		handleError(w, r, errors.New("not permission"), 401)
 		return
 	}
 
@@ -100,8 +106,26 @@ func (c *productController) DeleteProduct(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	productID := product["_id"].(string)
-	err := c.productService.DeleteProduct(productID)
+	tokenString := strings.Split(r.Header.Get("Authorization"), " ")[1]
+	mapDataRequest, errMapData := c.utils.JwtDecode(tokenString)
+	if errMapData != nil {
+		internalServerError(w, r, errMapData)
+		return
+	}
+	profileId := uint(mapDataRequest["profile_id"].(float64))
+	productId := product["_id"].(string)
+
+	isPermission, errCheck := c.productService.CheckPermissionOfReformist(profileId, productId)
+	if errCheck != nil {
+		handleError(w, r, errCheck, 400)
+		return
+	}
+	if !isPermission {
+		handleError(w, r, errors.New("not permission"), 401)
+		return
+	}
+
+	err := c.productService.DeleteProduct(productId)
 	if err != nil {
 		internalServerError(w, r, err)
 		return
