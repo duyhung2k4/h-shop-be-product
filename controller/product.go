@@ -1,8 +1,11 @@
 package controller
 
 import (
+	"app/config"
+	"app/grpc/proto"
 	"app/service"
 	"app/utils"
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -13,6 +16,7 @@ import (
 
 type productController struct {
 	productService service.ProductService
+	clientShopGRPC proto.ShopServiceClient
 	utils          utils.JwtUtils
 }
 
@@ -38,6 +42,23 @@ func (c *productController) CreateProduct(w http.ResponseWriter, r *http.Request
 	}
 	profileId := uint(mapDataRequest["profile_id"].(float64))
 	product["profileId"] = profileId
+	shopId := uint(product["shopId"].(float64))
+
+	resPermissionShop, errPermissionShop := c.clientShopGRPC.CheckShopPermission(
+		context.Background(),
+		&proto.CheckShopPermissionReq{
+			ShopId:    uint64(shopId),
+			ProfileId: uint64(profileId),
+		},
+	)
+	if errPermissionShop != nil {
+		internalServerError(w, r, errPermissionShop)
+		return
+	}
+	if !resPermissionShop.IsPermission {
+		handleError(w, r, errors.New("not permisson"), 401)
+		return
+	}
 
 	newProduct, err := c.productService.CreateProduct(product)
 	if err != nil {
@@ -71,6 +92,23 @@ func (c *productController) UpdateProduct(w http.ResponseWriter, r *http.Request
 	}
 	profileId := uint(mapDataRequest["profile_id"].(float64))
 	productId := product["_id"].(string)
+	shopId := uint(product["shopId"].(float64))
+
+	resPermissionShop, errPermissionShop := c.clientShopGRPC.CheckShopPermission(
+		context.Background(),
+		&proto.CheckShopPermissionReq{
+			ShopId:    uint64(shopId),
+			ProfileId: uint64(profileId),
+		},
+	)
+	if errPermissionShop != nil {
+		internalServerError(w, r, errPermissionShop)
+		return
+	}
+	if !resPermissionShop.IsPermission {
+		handleError(w, r, errors.New("not permisson"), 401)
+		return
+	}
 
 	isPermission, errCheck := c.productService.CheckPermissionOfReformist(profileId, productId)
 	if errCheck != nil {
@@ -114,6 +152,23 @@ func (c *productController) DeleteProduct(w http.ResponseWriter, r *http.Request
 	}
 	profileId := uint(mapDataRequest["profile_id"].(float64))
 	productId := product["_id"].(string)
+	shopId := uint(product["shopId"].(float64))
+
+	resPermissionShop, errPermissionShop := c.clientShopGRPC.CheckShopPermission(
+		context.Background(),
+		&proto.CheckShopPermissionReq{
+			ShopId:    uint64(shopId),
+			ProfileId: uint64(profileId),
+		},
+	)
+	if errPermissionShop != nil {
+		internalServerError(w, r, errPermissionShop)
+		return
+	}
+	if !resPermissionShop.IsPermission {
+		handleError(w, r, errors.New("not permisson"), 401)
+		return
+	}
 
 	isPermission, errCheck := c.productService.CheckPermissionOfReformist(profileId, productId)
 	if errCheck != nil {
@@ -144,6 +199,7 @@ func (c *productController) DeleteProduct(w http.ResponseWriter, r *http.Request
 func NewProductController() ProductController {
 	return &productController{
 		productService: service.NewProductService(),
+		clientShopGRPC: proto.NewShopServiceClient(config.GetConnProfileGRPC()),
 		utils:          utils.NewJwtUtils(),
 	}
 }
