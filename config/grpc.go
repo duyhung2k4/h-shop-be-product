@@ -7,7 +7,7 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
-func connectGPRC() {
+func connectGPRCServerShop() {
 	var errProfile error
 
 	creds, errKey := credentials.NewClientTLSFromFile("keys/server-shop/public.pem", "localhost")

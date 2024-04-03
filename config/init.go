@@ -18,5 +18,5 @@ func init() {
 		log.Fatalf("Error connect MongoDB : %v", err)
 	}
 	connectRedis()
-	connectGPRC()
+	connectGPRCServerShop()
 }
