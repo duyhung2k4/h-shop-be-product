@@ -8,15 +8,29 @@ import (
 )
 
 func connectGPRCServerShop() {
-	var errProfile error
+	var err error
 
 	creds, errKey := credentials.NewClientTLSFromFile("keys/server-shop/public.pem", "localhost")
 	if errKey != nil {
 		log.Fatalln(errKey)
 	}
 
-	clientProfile, errProfile = grpc.Dial(host+":20002", grpc.WithTransportCredentials(creds))
-	if errProfile != nil {
-		log.Fatalln(errProfile)
+	clientProfile, err = grpc.Dial(host+":20002", grpc.WithTransportCredentials(creds))
+	if err != nil {
+		log.Fatalln(err)
+	}
+}
+
+func connectGRPCServerFile() {
+	var err error
+
+	creds, errKey := credentials.NewClientTLSFromFile("keys/server-file/public.pem", "localhost")
+	if errKey != nil {
+		log.Fatalln(errKey)
+	}
+
+	clientFile, err = grpc.Dial(host+":20003", grpc.WithTransportCredentials(creds))
+	if err != nil {
+		log.Fatalln(err)
 	}
 }

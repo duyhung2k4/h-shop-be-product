@@ -37,4 +37,5 @@ var (
 	jwt *jwtauth.JWTAuth
 
 	clientProfile *grpc.ClientConn
+	clientFile    *grpc.ClientConn
 )
