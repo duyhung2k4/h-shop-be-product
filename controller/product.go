@@ -3,20 +3,24 @@ package controller
 import (
 	"app/config"
 	"app/grpc/proto"
+	"app/model"
 	"app/service"
 	"app/utils"
 	"context"
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"strings"
 
 	"github.com/go-chi/render"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type productController struct {
 	productService service.ProductService
 	clientShopGRPC proto.ShopServiceClient
+	clientFileGRPC proto.FileServiceClient
 	utils          utils.JwtUtils
 }
 
@@ -27,11 +31,28 @@ type ProductController interface {
 }
 
 func (c *productController) CreateProduct(w http.ResponseWriter, r *http.Request) {
-	var product map[string]interface{}
+	var product CreateProductPayload
 
 	if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
 		badRequest(w, r, err)
 		return
+	}
+
+	log.Println("Product: ", product.InfoProduct)
+
+	for keyDefault := range model.MapDefaultFieldProduct {
+		checkExit := false
+		for key := range product.InfoProduct {
+			if key == keyDefault {
+				checkExit = true
+				break
+			}
+		}
+
+		if !checkExit {
+			badRequest(w, r, errors.New("missing default field"))
+			return
+		}
 	}
 
 	tokenString := strings.Split(r.Header.Get("Authorization"), " ")[1]
@@ -41,8 +62,8 @@ func (c *productController) CreateProduct(w http.ResponseWriter, r *http.Request
 		return
 	}
 	profileId := uint(mapDataRequest["profile_id"].(float64))
-	product["profileId"] = profileId
-	shopId := uint(product["shopId"].(float64))
+	product.InfoProduct["profileId"] = profileId
+	shopId := uint(product.InfoProduct["shopId"].(float64))
 
 	resPermissionShop, errPermissionShop := c.clientShopGRPC.CheckShopPermission(
 		context.Background(),
@@ -60,11 +81,23 @@ func (c *productController) CreateProduct(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	newProduct, err := c.productService.CreateProduct(product)
-	if err != nil {
-		internalServerError(w, r, err)
+	newProduct, errProduct := c.productService.CreateProduct(product.InfoProduct)
+	if errProduct != nil {
+		internalServerError(w, r, errProduct)
 		return
 	}
+
+	dataFiles, errDataFiles := c.clientFileGRPC.InsertFile(context.Background(), &proto.InsertFileReq{
+		Data:      product.Files,
+		TypeModel: string(model.PRODUCT),
+		ProductId: newProduct["_id"].(primitive.ObjectID).String(),
+	})
+	if errDataFiles != nil {
+		internalServerError(w, r, errDataFiles)
+		return
+	}
+
+	newProduct["fileIds"] = dataFiles.FileIds
 
 	res := Response{
 		Data:    newProduct,
@@ -200,6 +233,12 @@ func NewProductController() ProductController {
 	return &productController{
 		productService: service.NewProductService(),
 		clientShopGRPC: proto.NewShopServiceClient(config.GetConnProfileGRPC()),
+		clientFileGRPC: proto.NewFileServiceClient(config.GetConnFileGrpc()),
 		utils:          utils.NewJwtUtils(),
 	}
+}
+
+type CreateProductPayload struct {
+	InfoProduct map[string]interface{} `json:"infoProduct"`
+	Files       [][]byte               `json:"files"`
 }

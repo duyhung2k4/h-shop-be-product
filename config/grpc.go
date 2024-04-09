@@ -29,7 +29,7 @@ func connectGRPCServerFile() {
 		log.Fatalln(errKey)
 	}
 
-	clientFile, err = grpc.Dial(host+":20003", grpc.WithTransportCredentials(creds))
+	clientFile, err = grpc.Dial(host+":20004", grpc.WithTransportCredentials(creds))
 	if err != nil {
 		log.Fatalln(err)
 	}
