@@ -87,17 +87,28 @@ func (c *productController) CreateProduct(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	dataFiles, errDataFiles := c.clientFileGRPC.InsertFile(context.Background(), &proto.InsertFileReq{
-		Data:      product.Files,
-		TypeModel: string(model.PRODUCT),
-		ProductId: newProduct["_id"].(primitive.ObjectID).String(),
-	})
-	if errDataFiles != nil {
-		internalServerError(w, r, errDataFiles)
-		return
+	if len(product.Files) > 0 {
+		postFile, errPostFile := c.clientFileGRPC.InsertFile(context.Background())
+		if errPostFile != nil {
+			internalServerError(w, r, errPostFile)
+			return
+		}
+		for _, file := range product.Files {
+			postFile.Send(&proto.InsertFileReq{
+				Data:      file.DataBytes,
+				Format:    file.Format,
+				Name:      file.Name,
+				ProductId: newProduct["_id"].(primitive.ObjectID).String(),
+				TypeModel: string(model.PRODUCT),
+			})
+		}
+		resFile, errResFile := postFile.CloseAndRecv()
+		if errResFile != nil {
+			internalServerError(w, r, errResFile)
+			return
+		}
+		newProduct["fileIds"] = resFile.FileIds
 	}
-
-	newProduct["fileIds"] = dataFiles.FileIds
 
 	res := Response{
 		Data:    newProduct,
@@ -238,7 +249,13 @@ func NewProductController() ProductController {
 	}
 }
 
+type FileInfoPayload struct {
+	Name      string `json:"name"`
+	Format    string `json:"format"`
+	DataBytes []byte `json:"dataBytes"`
+}
+
 type CreateProductPayload struct {
 	InfoProduct map[string]interface{} `json:"infoProduct"`
-	Files       [][]byte               `json:"files"`
+	Files       []FileInfoPayload      `json:"files"`
 }
