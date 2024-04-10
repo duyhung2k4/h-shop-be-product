@@ -9,7 +9,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 	"strings"
 
@@ -31,14 +30,12 @@ type ProductController interface {
 }
 
 func (c *productController) CreateProduct(w http.ResponseWriter, r *http.Request) {
-	var product CreateProductPayload
+	var product service.CreateProductPayload
 
 	if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
 		badRequest(w, r, err)
 		return
 	}
-
-	log.Println("Product: ", product.InfoProduct)
 
 	for keyDefault := range model.MapDefaultFieldProduct {
 		checkExit := false
@@ -55,6 +52,7 @@ func (c *productController) CreateProduct(w http.ResponseWriter, r *http.Request
 		}
 	}
 
+	// Check permission action with product
 	tokenString := strings.Split(r.Header.Get("Authorization"), " ")[1]
 	mapDataRequest, errMapData := c.utils.JwtDecode(tokenString)
 	if errMapData != nil {
@@ -80,13 +78,16 @@ func (c *productController) CreateProduct(w http.ResponseWriter, r *http.Request
 		handleError(w, r, errors.New("not permisson"), 401)
 		return
 	}
+	//
 
+	// Create product
 	newProduct, errProduct := c.productService.CreateProduct(product.InfoProduct)
 	if errProduct != nil {
 		internalServerError(w, r, errProduct)
 		return
 	}
 
+	// Handle file
 	if len(product.Files) > 0 {
 		postFile, errPostFile := c.clientFileGRPC.InsertFile(context.Background())
 		if errPostFile != nil {
@@ -121,13 +122,14 @@ func (c *productController) CreateProduct(w http.ResponseWriter, r *http.Request
 }
 
 func (c *productController) UpdateProduct(w http.ResponseWriter, r *http.Request) {
-	var product map[string]interface{}
+	var product service.UpdateProductPayload
 
 	if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
 		badRequest(w, r, err)
 		return
 	}
 
+	// Check permission action with product
 	tokenString := strings.Split(r.Header.Get("Authorization"), " ")[1]
 	mapDataRequest, errMapData := c.utils.JwtDecode(tokenString)
 	if errMapData != nil {
@@ -135,8 +137,8 @@ func (c *productController) UpdateProduct(w http.ResponseWriter, r *http.Request
 		return
 	}
 	profileId := uint(mapDataRequest["profile_id"].(float64))
-	productId := product["_id"].(string)
-	shopId := uint(product["shopId"].(float64))
+	productId := product.InfoProduct["_id"].(string)
+	shopId := uint(product.InfoProduct["shopId"].(float64))
 
 	resPermissionShop, errPermissionShop := c.clientShopGRPC.CheckShopPermission(
 		context.Background(),
@@ -163,11 +165,46 @@ func (c *productController) UpdateProduct(w http.ResponseWriter, r *http.Request
 		handleError(w, r, errors.New("not permission"), 401)
 		return
 	}
+	//
 
-	newProduct, err := c.productService.UpdateProduct(product)
+	// Update product
+	newProduct, err := c.productService.UpdateProduct(product.InfoProduct)
 	if err != nil {
 		internalServerError(w, r, err)
 		return
+	}
+
+	// Handle file
+	if len(product.ListFileIdDeletes) > 0 {
+		_, errDeleteFile := c.clientFileGRPC.DeleteFile(context.Background(), &proto.DeleteFileReq{
+			Ids: product.ListFileIdDeletes,
+		})
+		if errDeleteFile != nil {
+			internalServerError(w, r, errDeleteFile)
+			return
+		}
+	}
+	if len(product.Files) > 0 {
+		postFile, errPostFile := c.clientFileGRPC.InsertFile(context.Background())
+		if errPostFile != nil {
+			internalServerError(w, r, errPostFile)
+			return
+		}
+		for _, file := range product.Files {
+			postFile.Send(&proto.InsertFileReq{
+				Data:      file.DataBytes,
+				Format:    file.Format,
+				Name:      file.Name,
+				ProductId: newProduct["_id"].(primitive.ObjectID).String(),
+				TypeModel: string(model.PRODUCT),
+			})
+		}
+		resFile, errResFile := postFile.CloseAndRecv()
+		if errResFile != nil {
+			internalServerError(w, r, errResFile)
+			return
+		}
+		newProduct["fileIds"] = resFile.FileIds
 	}
 
 	res := Response{
@@ -181,13 +218,14 @@ func (c *productController) UpdateProduct(w http.ResponseWriter, r *http.Request
 }
 
 func (c *productController) DeleteProduct(w http.ResponseWriter, r *http.Request) {
-	var product map[string]interface{}
+	var product service.DeleyeProductPayload
 
 	if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
 		badRequest(w, r, err)
 		return
 	}
 
+	// Check permission action with product
 	tokenString := strings.Split(r.Header.Get("Authorization"), " ")[1]
 	mapDataRequest, errMapData := c.utils.JwtDecode(tokenString)
 	if errMapData != nil {
@@ -195,13 +233,11 @@ func (c *productController) DeleteProduct(w http.ResponseWriter, r *http.Request
 		return
 	}
 	profileId := uint(mapDataRequest["profile_id"].(float64))
-	productId := product["_id"].(string)
-	shopId := uint(product["shopId"].(float64))
 
 	resPermissionShop, errPermissionShop := c.clientShopGRPC.CheckShopPermission(
 		context.Background(),
 		&proto.CheckShopPermissionReq{
-			ShopId:    uint64(shopId),
+			ShopId:    uint64(product.ShopId),
 			ProfileId: uint64(profileId),
 		},
 	)
@@ -214,7 +250,7 @@ func (c *productController) DeleteProduct(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	isPermission, errCheck := c.productService.CheckPermissionOfReformist(profileId, productId)
+	isPermission, errCheck := c.productService.CheckPermissionOfReformist(profileId, product.ProductId)
 	if errCheck != nil {
 		handleError(w, r, errCheck, 400)
 		return
@@ -223,8 +259,26 @@ func (c *productController) DeleteProduct(w http.ResponseWriter, r *http.Request
 		handleError(w, r, errors.New("not permission"), 401)
 		return
 	}
+	//
 
-	err := c.productService.DeleteProduct(productId)
+	// Delete files
+	listFileIds, errListFileIds := c.clientFileGRPC.GetFileIdsWithProductId(
+		context.Background(),
+		&proto.GetFileIdsWithProductIdReq{ProductId: product.ProductId},
+	)
+
+	if errListFileIds != nil {
+		internalServerError(w, r, errListFileIds)
+		return
+	}
+	if _, err := c.clientFileGRPC.
+		DeleteFile(context.Background(), &proto.DeleteFileReq{Ids: listFileIds.Ids}); err != nil {
+		internalServerError(w, r, err)
+		return
+	}
+
+	// Delete product
+	err := c.productService.DeleteProduct(product.ProductId)
 	if err != nil {
 		internalServerError(w, r, err)
 		return
@@ -247,15 +301,4 @@ func NewProductController() ProductController {
 		clientFileGRPC: proto.NewFileServiceClient(config.GetConnFileGrpc()),
 		utils:          utils.NewJwtUtils(),
 	}
-}
-
-type FileInfoPayload struct {
-	Name      string `json:"name"`
-	Format    string `json:"format"`
-	DataBytes []byte `json:"dataBytes"`
-}
-
-type CreateProductPayload struct {
-	InfoProduct map[string]interface{} `json:"infoProduct"`
-	Files       []FileInfoPayload      `json:"files"`
 }
