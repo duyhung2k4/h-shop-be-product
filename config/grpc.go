@@ -15,7 +15,7 @@ func connectGPRCServerShop() {
 		log.Fatalln(errKey)
 	}
 
-	clientProfile, err = grpc.Dial(host+":20002", grpc.WithTransportCredentials(creds))
+	clientShop, err = grpc.Dial(host+":20002", grpc.WithTransportCredentials(creds))
 	if err != nil {
 		log.Fatalln(err)
 	}

@@ -36,6 +36,6 @@ var (
 	rdb *redis.Client
 	jwt *jwtauth.JWTAuth
 
-	clientProfile *grpc.ClientConn
-	clientFile    *grpc.ClientConn
+	clientShop *grpc.ClientConn
+	clientFile *grpc.ClientConn
 )

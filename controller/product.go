@@ -9,6 +9,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"strings"
 
@@ -87,6 +88,8 @@ func (c *productController) CreateProduct(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	log.Println(newProduct)
+
 	// Handle file
 	if len(product.Files) > 0 {
 		postFile, errPostFile := c.clientFileGRPC.InsertFile(context.Background())
@@ -99,7 +102,7 @@ func (c *productController) CreateProduct(w http.ResponseWriter, r *http.Request
 				Data:      file.DataBytes,
 				Format:    file.Format,
 				Name:      file.Name,
-				ProductId: newProduct["_id"].(primitive.ObjectID).String(),
+				ProductId: newProduct["_id"].(primitive.ObjectID).Hex(),
 				TypeModel: string(model.PRODUCT),
 			})
 		}
@@ -195,7 +198,7 @@ func (c *productController) UpdateProduct(w http.ResponseWriter, r *http.Request
 				Data:      file.DataBytes,
 				Format:    file.Format,
 				Name:      file.Name,
-				ProductId: newProduct["_id"].(primitive.ObjectID).String(),
+				ProductId: newProduct["_id"].(primitive.ObjectID).Hex(),
 				TypeModel: string(model.PRODUCT),
 			})
 		}
@@ -297,7 +300,7 @@ func (c *productController) DeleteProduct(w http.ResponseWriter, r *http.Request
 func NewProductController() ProductController {
 	return &productController{
 		productService: service.NewProductService(),
-		clientShopGRPC: proto.NewShopServiceClient(config.GetConnProfileGRPC()),
+		clientShopGRPC: proto.NewShopServiceClient(config.GetConnShopGRPC()),
 		clientFileGRPC: proto.NewFileServiceClient(config.GetConnFileGrpc()),
 		utils:          utils.NewJwtUtils(),
 	}

@@ -23,8 +23,8 @@ func GetJWT() *jwtauth.JWTAuth {
 	return jwt
 }
 
-func GetConnProfileGRPC() *grpc.ClientConn {
-	return clientProfile
+func GetConnShopGRPC() *grpc.ClientConn {
+	return clientShop
 }
 
 func GetConnFileGrpc() *grpc.ClientConn {
