@@ -24,3 +24,12 @@ gen_code_grpc:
     	proto/*.proto
 export_go:
 	export PATH="$PATH:$(go env GOPATH)/bin"
+gen_key:
+	openssl \
+		req -x509 \
+		-nodes \
+		-days 365 \
+		-newkey rsa:2048 \
+		-keyout keys/server-product/private.pem \
+		-out keys/server-product/public.pem \
+		-config keys/server-product/san.cfg
