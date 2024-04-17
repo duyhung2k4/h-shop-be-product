@@ -20,4 +20,5 @@ func init() {
 	connectRedis()
 	connectGPRCServerShop()
 	connectGRPCServerFile()
+	connectGRPCServerWarehouse()
 }

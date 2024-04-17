@@ -1,6 +1,8 @@
 package grpc
 
 import (
+	"app/grpc/api"
+	"app/grpc/proto"
 	"log"
 	"net"
 
@@ -9,7 +11,7 @@ import (
 )
 
 func RunServerGRPC() {
-	listenerGRPC, err := net.Listen("tcp", ":20004")
+	listenerGRPC, err := net.Listen("tcp", ":20003")
 
 	if err != nil {
 		log.Fatalln(listenerGRPC)
@@ -25,6 +27,7 @@ func RunServerGRPC() {
 	}
 
 	grpcServer := grpc.NewServer(grpc.Creds(creds))
+	proto.RegisterProductServiceServer(grpcServer, api.NewProductGRPC())
 
 	log.Fatalln(grpcServer.Serve(listenerGRPC))
 }

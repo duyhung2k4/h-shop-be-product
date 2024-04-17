@@ -34,3 +34,17 @@ func connectGRPCServerFile() {
 		log.Fatalln(err)
 	}
 }
+
+func connectGRPCServerWarehouse() {
+	var err error
+
+	creds, errKey := credentials.NewClientTLSFromFile("keys/server-warehouse/public.pem", "localhost")
+	if errKey != nil {
+		log.Fatalln(errKey)
+	}
+
+	clientWarehouse, err = grpc.Dial(host+":20005", grpc.WithTransportCredentials(creds))
+	if err != nil {
+		log.Fatalln(err)
+	}
+}

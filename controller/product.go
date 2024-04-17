@@ -12,16 +12,18 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/go-chi/render"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type productController struct {
-	productService service.ProductService
-	clientShopGRPC proto.ShopServiceClient
-	clientFileGRPC proto.FileServiceClient
-	utils          utils.JwtUtils
+	productService   service.ProductService
+	clientShopGRPC   proto.ShopServiceClient
+	clientFileGRPC   proto.FileServiceClient
+	warehouseService proto.WarehouseServiceClient
+	utils            utils.JwtUtils
 }
 
 type ProductController interface {
@@ -79,7 +81,6 @@ func (c *productController) CreateProduct(w http.ResponseWriter, r *http.Request
 		handleError(w, r, errors.New("not permisson"), 401)
 		return
 	}
-	//
 
 	// Create product
 	newProduct, errProduct := c.productService.CreateProduct(product.InfoProduct)
@@ -88,30 +89,57 @@ func (c *productController) CreateProduct(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	log.Println(newProduct)
+	var errHandle error = nil
+	var wg sync.WaitGroup
+	wg.Add(2)
 
-	// Handle file
-	if len(product.Files) > 0 {
-		postFile, errPostFile := c.clientFileGRPC.InsertFile(context.Background())
-		if errPostFile != nil {
-			internalServerError(w, r, errPostFile)
+	go func() {
+		// Create warehouse
+		_, err := c.warehouseService.Insert(context.Background(), &proto.InsertWarehouseReq{
+			ProductId: newProduct["_id"].(primitive.ObjectID).Hex(),
+		})
+		if err != nil {
+			errHandle = err
+			log.Println("Create warehouse: ", err)
+			wg.Done()
 			return
 		}
-		for _, file := range product.Files {
-			postFile.Send(&proto.InsertFileReq{
-				Data:      file.DataBytes,
-				Format:    file.Format,
-				Name:      file.Name,
-				ProductId: newProduct["_id"].(primitive.ObjectID).Hex(),
-				TypeModel: string(model.PRODUCT),
-			})
+		wg.Done()
+	}()
+
+	go func() {
+		// Handle file
+		if len(product.Files) > 0 {
+			postFile, errPostFile := c.clientFileGRPC.InsertFile(context.Background())
+			if errPostFile != nil {
+				errHandle = errPostFile
+				wg.Done()
+				return
+			}
+			for _, file := range product.Files {
+				postFile.Send(&proto.InsertFileReq{
+					Data:      file.DataBytes,
+					Format:    file.Format,
+					Name:      file.Name,
+					ProductId: newProduct["_id"].(primitive.ObjectID).Hex(),
+					TypeModel: string(model.PRODUCT),
+				})
+			}
+			resFile, errResFile := postFile.CloseAndRecv()
+			if errResFile != nil {
+				errHandle = errPostFile
+				wg.Done()
+				return
+			}
+			newProduct["fileIds"] = resFile.FileIds
 		}
-		resFile, errResFile := postFile.CloseAndRecv()
-		if errResFile != nil {
-			internalServerError(w, r, errResFile)
-			return
-		}
-		newProduct["fileIds"] = resFile.FileIds
+		wg.Done()
+	}()
+	wg.Wait()
+
+	if errHandle != nil {
+		internalServerError(w, r, errHandle)
+		return
 	}
 
 	res := Response{
@@ -299,9 +327,10 @@ func (c *productController) DeleteProduct(w http.ResponseWriter, r *http.Request
 
 func NewProductController() ProductController {
 	return &productController{
-		productService: service.NewProductService(),
-		clientShopGRPC: proto.NewShopServiceClient(config.GetConnShopGRPC()),
-		clientFileGRPC: proto.NewFileServiceClient(config.GetConnFileGrpc()),
-		utils:          utils.NewJwtUtils(),
+		productService:   service.NewProductService(),
+		clientShopGRPC:   proto.NewShopServiceClient(config.GetConnShopGRPC()),
+		clientFileGRPC:   proto.NewFileServiceClient(config.GetConnFileGrpc()),
+		warehouseService: proto.NewWarehouseServiceClient(config.GetConnWarehouseGrpc()),
+		utils:            utils.NewJwtUtils(),
 	}
 }

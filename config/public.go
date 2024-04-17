@@ -31,6 +31,10 @@ func GetConnFileGrpc() *grpc.ClientConn {
 	return clientFile
 }
 
+func GetConnWarehouseGrpc() *grpc.ClientConn {
+	return clientWarehouse
+}
+
 func GetHost() string {
 	return host
 }
