@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/go-chi/jwtauth/v5"
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -18,6 +19,9 @@ const (
 	URL_REDIS      = "URL_REDIS"
 	HOST           = "HOST"
 	MONGO_DB_LOCAL = "MONGO_DB_LOCAL"
+
+	ELASTIC_USER     = "ELASTIC_USER"
+	ELASTIC_PASSWORD = "ELASTIC_PASSWORD"
 )
 
 var (
@@ -39,4 +43,9 @@ var (
 	clientShop      *grpc.ClientConn
 	clientFile      *grpc.ClientConn
 	clientWarehouse *grpc.ClientConn
+
+	elasticUser     string
+	elasticPassword string
+
+	es *elasticsearch.Client
 )

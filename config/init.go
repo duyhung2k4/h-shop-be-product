@@ -21,4 +21,5 @@ func init() {
 	connectGPRCServerShop()
 	connectGRPCServerFile()
 	connectGRPCServerWarehouse()
+	connectElastic()
 }

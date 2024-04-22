@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/go-chi/jwtauth/v5"
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -37,4 +38,8 @@ func GetConnWarehouseGrpc() *grpc.ClientConn {
 
 func GetHost() string {
 	return host
+}
+
+func GetElastic() *elasticsearch.Client {
+	return es
 }

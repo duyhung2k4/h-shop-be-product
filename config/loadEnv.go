@@ -25,5 +25,8 @@ func loadEnv() error {
 	host = os.Getenv(HOST)
 	mongodbLocal = os.Getenv(MONGO_DB_LOCAL)
 
+	elasticUser = os.Getenv(ELASTIC_USER)
+	elasticPassword = os.Getenv(ELASTIC_PASSWORD)
+
 	return nil
 }

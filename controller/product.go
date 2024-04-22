@@ -206,37 +206,49 @@ func (c *productController) UpdateProduct(w http.ResponseWriter, r *http.Request
 	}
 
 	// Handle file
-	if len(product.ListFileIdDeletes) > 0 {
-		_, errDeleteFile := c.clientFileGRPC.DeleteFile(context.Background(), &proto.DeleteFileReq{
-			Ids: product.ListFileIdDeletes,
-		})
-		if errDeleteFile != nil {
-			internalServerError(w, r, errDeleteFile)
-			return
-		}
-	}
-	if len(product.Files) > 0 {
-		postFile, errPostFile := c.clientFileGRPC.InsertFile(context.Background())
-		if errPostFile != nil {
-			internalServerError(w, r, errPostFile)
-			return
-		}
-		for _, file := range product.Files {
-			postFile.Send(&proto.InsertFileReq{
-				Data:      file.DataBytes,
-				Format:    file.Format,
-				Name:      file.Name,
-				ProductId: newProduct["_id"].(primitive.ObjectID).Hex(),
-				TypeModel: string(model.PRODUCT),
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		if len(product.ListFileIdDeletes) > 0 {
+			_, errDeleteFile := c.clientFileGRPC.DeleteFile(context.Background(), &proto.DeleteFileReq{
+				Ids: product.ListFileIdDeletes,
 			})
+			if errDeleteFile != nil {
+				internalServerError(w, r, errDeleteFile)
+				return
+			}
 		}
-		resFile, errResFile := postFile.CloseAndRecv()
-		if errResFile != nil {
-			internalServerError(w, r, errResFile)
-			return
+
+		wg.Done()
+	}()
+
+	go func() {
+		if len(product.Files) > 0 {
+			postFile, errPostFile := c.clientFileGRPC.InsertFile(context.Background())
+			if errPostFile != nil {
+				internalServerError(w, r, errPostFile)
+				return
+			}
+			for _, file := range product.Files {
+				postFile.Send(&proto.InsertFileReq{
+					Data:      file.DataBytes,
+					Format:    file.Format,
+					Name:      file.Name,
+					ProductId: newProduct["_id"].(primitive.ObjectID).Hex(),
+					TypeModel: string(model.PRODUCT),
+				})
+			}
+			resFile, errResFile := postFile.CloseAndRecv()
+			if errResFile != nil {
+				internalServerError(w, r, errResFile)
+				return
+			}
+			newProduct["fileIds"] = resFile.FileIds
 		}
-		newProduct["fileIds"] = resFile.FileIds
-	}
+		wg.Done()
+	}()
+	wg.Wait()
 
 	res := Response{
 		Data:    newProduct,
