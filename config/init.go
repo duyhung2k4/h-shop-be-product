@@ -22,4 +22,5 @@ func init() {
 	connectGRPCServerFile()
 	connectGRPCServerWarehouse()
 	connectElastic()
+	connectRabbitMQ()
 }

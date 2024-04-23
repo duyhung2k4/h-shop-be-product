@@ -3,6 +3,7 @@ package config
 import (
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/go-chi/jwtauth/v5"
+	"github.com/rabbitmq/amqp091-go"
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
 	"google.golang.org/grpc"
@@ -22,6 +23,7 @@ const (
 
 	ELASTIC_USER     = "ELASTIC_USER"
 	ELASTIC_PASSWORD = "ELASTIC_PASSWORD"
+	URL_RABBIT_MQ    = "URL_RABBIT_MQ"
 )
 
 var (
@@ -35,6 +37,7 @@ var (
 	urlRedis     string
 	host         string
 	mongodbLocal string
+	urlRabbitMq  string
 
 	db  *mongo.Database
 	rdb *redis.Client
@@ -47,5 +50,6 @@ var (
 	elasticUser     string
 	elasticPassword string
 
-	es *elasticsearch.Client
+	es            *elasticsearch.Client
+	rabbitChannel *amqp091.Channel
 )

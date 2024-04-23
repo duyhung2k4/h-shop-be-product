@@ -6,3 +6,9 @@ var (
 		"price":  "price",
 	}
 )
+
+type QUEUE_PRODUCT string
+
+const (
+	PRODUCT_TO_ELASTIC QUEUE_PRODUCT = "product_to_elastic"
+)

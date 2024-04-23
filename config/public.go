@@ -3,6 +3,7 @@ package config
 import (
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/go-chi/jwtauth/v5"
+	"github.com/rabbitmq/amqp091-go"
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/mongo"
 	"google.golang.org/grpc"
@@ -42,4 +43,8 @@ func GetHost() string {
 
 func GetElastic() *elasticsearch.Client {
 	return es
+}
+
+func GetRabbitChannel() *amqp091.Channel {
+	return rabbitChannel
 }

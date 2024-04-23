@@ -27,6 +27,7 @@ func loadEnv() error {
 
 	elasticUser = os.Getenv(ELASTIC_USER)
 	elasticPassword = os.Getenv(ELASTIC_PASSWORD)
+	urlRabbitMq = os.Getenv(URL_RABBIT_MQ)
 
 	return nil
 }

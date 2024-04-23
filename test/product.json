@@ -1,4 +1,14 @@
 {
-    "name": "hehe",
-    "href": "#"
+    "infoProduct": {
+        "name": "hehe",
+        "href": "#",
+        "field_1": 1,
+        "field_2": 1,
+        "field_3": 1,
+        "field_4": 1,
+        "field_5": 1,
+        "price": 1000,
+        "shopId": 3
+    },
+    "files": []
 }

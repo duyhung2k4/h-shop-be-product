@@ -19,11 +19,12 @@ import (
 )
 
 type productController struct {
-	productService   service.ProductService
-	clientShopGRPC   proto.ShopServiceClient
-	clientFileGRPC   proto.FileServiceClient
-	warehouseService proto.WarehouseServiceClient
-	utils            utils.JwtUtils
+	productService      service.ProductService
+	clientShopGRPC      proto.ShopServiceClient
+	clientFileGRPC      proto.FileServiceClient
+	warehouseService    proto.WarehouseServiceClient
+	utils               utils.JwtUtils
+	queueProductService service.QueueProductService
 }
 
 type ProductController interface {
@@ -141,6 +142,9 @@ func (c *productController) CreateProduct(w http.ResponseWriter, r *http.Request
 		internalServerError(w, r, errHandle)
 		return
 	}
+
+	newProduct["_id"] = newProduct["_id"].(primitive.ObjectID).Hex()
+	c.queueProductService.PushMessInQueueToElasticSearch(newProduct)
 
 	res := Response{
 		Data:    newProduct,
@@ -339,10 +343,11 @@ func (c *productController) DeleteProduct(w http.ResponseWriter, r *http.Request
 
 func NewProductController() ProductController {
 	return &productController{
-		productService:   service.NewProductService(),
-		clientShopGRPC:   proto.NewShopServiceClient(config.GetConnShopGRPC()),
-		clientFileGRPC:   proto.NewFileServiceClient(config.GetConnFileGrpc()),
-		warehouseService: proto.NewWarehouseServiceClient(config.GetConnWarehouseGrpc()),
-		utils:            utils.NewJwtUtils(),
+		productService:      service.NewProductService(),
+		clientShopGRPC:      proto.NewShopServiceClient(config.GetConnShopGRPC()),
+		clientFileGRPC:      proto.NewFileServiceClient(config.GetConnFileGrpc()),
+		warehouseService:    proto.NewWarehouseServiceClient(config.GetConnWarehouseGrpc()),
+		utils:               utils.NewJwtUtils(),
+		queueProductService: service.NewQueueProductService(),
 	}
 }
