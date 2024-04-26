@@ -1,11 +1,11 @@
 test_request_product_insert:
 	ab \
-	-n 10000 \
-	-c 100 \
+	-n 10 \
+	-c 10 \
 	-T application/json \
 	-p test/product.json \
 	-m POST \
-	-H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJhYmEwMzk4MjYyMTI0QGdtYWlsLmNvbSIsImV4cCI6MTcxMzkwNDY3MSwicHJvZmlsZV9pZCI6Nywicm9sZSI6InVzZXIiLCJzdWIiOiIxMTc5OTY0MjMxODM5MDc1NzAyNTIiLCJ1dWlkIjoiNjUzMGJiN2MtMTViYi00NGZlLWI2OTQtNzcwZmZhMDg1MmViIn0.OB2vJQpNN6eT6VoDIPk4M8Q2KP7_LtUXuez0_kVAo2k" \
+	-H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJhYmEwMzk4MjYyMTI0QGdtYWlsLmNvbSIsImV4cCI6MTcxMzk4MzE0NSwicHJvZmlsZV9pZCI6Nywicm9sZSI6InVzZXIiLCJzdWIiOiIxMTc5OTY0MjMxODM5MDc1NzAyNTIiLCJ1dWlkIjoiMTFiYzBmYjMtODg3Yi00MGI1LTk1MTItOGI5MTBhNWZkODAyIn0.IJDjr0TLXLhdLGW_yL_zXo-MVH16WXjFJ1TVhwM1uWE" \
 	http://localhost:18883/product/api/v1/protected/product
 test_get_data:
 	ab \
