@@ -2,7 +2,9 @@ package service
 
 import (
 	"app/config"
+	"app/grpc/proto"
 	"app/model"
+	"app/utils"
 	"context"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -11,17 +13,23 @@ import (
 )
 
 type productService struct {
-	db *mongo.Database
+	db             *mongo.Database
+	clientShopGRPC proto.ShopServiceClient
+	utils          utils.JwtUtils
 }
 
 type ProductService interface {
-	CheckPermissionOfReformist(profileId uint, productId string) (bool, error)
 	CreateProduct(product map[string]interface{}) (map[string]interface{}, error)
 	UpdateProduct(product map[string]interface{}) (map[string]interface{}, error)
 	DeleteProduct(productId string) error
+
+	CheckPermissionShop(shopId uint, tokenString string) (*bool, error)
+	CheckPermissionProduct(productId string, tokenString string) (*bool, error)
+
+	checkPermissionOfReformist(profileId uint, productId string) (bool, error)
 }
 
-func (s *productService) CheckPermissionOfReformist(profileId uint, productId string) (bool, error) {
+func (s *productService) checkPermissionOfReformist(profileId uint, productId string) (bool, error) {
 	objID, errObjID := primitive.ObjectIDFromHex(productId)
 	if errObjID != nil {
 		return false, errObjID
@@ -111,9 +119,52 @@ func (s *productService) DeleteProduct(productId string) error {
 	return nil
 }
 
+func (s *productService) CheckPermissionShop(shopId uint, tokenString string) (*bool, error) {
+	mapDataRequest, errMapData := s.utils.JwtDecode(tokenString)
+	if errMapData != nil {
+		return nil, errMapData
+	}
+	profileId := uint(mapDataRequest["profile_id"].(float64))
+
+	resPermissionShop, errPermissionShop := s.clientShopGRPC.CheckShopPermission(
+		context.Background(),
+		&proto.CheckShopPermissionReq{
+			ShopId:    uint64(shopId),
+			ProfileId: uint64(profileId),
+		},
+	)
+	if errPermissionShop != nil {
+		return nil, errPermissionShop
+	}
+	if !resPermissionShop.IsPermission {
+		return &model.FALSE_VALUE, nil
+	}
+
+	return &model.TRUE_VALUE, nil
+}
+
+func (s *productService) CheckPermissionProduct(productId string, tokenString string) (*bool, error) {
+	mapDataRequest, errMapData := s.utils.JwtDecode(tokenString)
+	if errMapData != nil {
+		return nil, errMapData
+	}
+	profileId := uint(mapDataRequest["profile_id"].(float64))
+
+	isPermission, errCheck := s.checkPermissionOfReformist(profileId, productId)
+	if errCheck != nil {
+		return nil, errCheck
+	}
+	if !isPermission {
+		return &model.FALSE_VALUE, nil
+	}
+	return &model.TRUE_VALUE, nil
+}
+
 func NewProductService() ProductService {
 	return &productService{
-		db: config.GetDB(),
+		db:             config.GetDB(),
+		clientShopGRPC: proto.NewShopServiceClient(config.GetConnShopGRPC()),
+		utils:          utils.NewJwtUtils(),
 	}
 }
 
