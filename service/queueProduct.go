@@ -2,7 +2,6 @@ package service
 
 import (
 	"app/config"
-	"app/model"
 	"context"
 	"encoding/json"
 
@@ -14,10 +13,10 @@ type queueProductService struct {
 }
 
 type QueueProductService interface {
-	PushMessInQueueToElasticSearch(data map[string]interface{}) error
+	PushMessInQueueToElasticSearch(data map[string]interface{}, queueName string) error
 }
 
-func (s *queueProductService) PushMessInQueueToElasticSearch(data map[string]interface{}) error {
+func (s *queueProductService) PushMessInQueueToElasticSearch(data map[string]interface{}, queueName string) error {
 	dataBytes, errConvert := json.Marshal(data)
 	if errConvert != nil {
 		return errConvert
@@ -25,7 +24,7 @@ func (s *queueProductService) PushMessInQueueToElasticSearch(data map[string]int
 
 	errPush := s.channelQueueProduct.PublishWithContext(context.Background(),
 		"",
-		string(model.PRODUCT_TO_ELASTIC),
+		queueName,
 		false, // mandatory
 		false, // immediate,
 		amqp091.Publishing{

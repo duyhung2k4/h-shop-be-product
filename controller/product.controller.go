@@ -2,9 +2,11 @@ package controller
 
 import (
 	"app/config"
+	"app/dto/request"
 	"app/grpc/proto"
 	"app/model"
 	"app/service"
+	"app/utils"
 	"context"
 	"encoding/json"
 	"errors"
@@ -22,6 +24,7 @@ type productController struct {
 	clientFileGRPC      proto.FileServiceClient
 	warehouseService    proto.WarehouseServiceClient
 	queueProductService service.QueueProductService
+	utils               utils.JwtUtils
 }
 
 type ProductController interface {
@@ -31,7 +34,7 @@ type ProductController interface {
 }
 
 func (c *productController) CreateProduct(w http.ResponseWriter, r *http.Request) {
-	var product service.CreateProductPayload
+	var product request.CreateProductRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
 		badRequest(w, r, err)
@@ -55,7 +58,7 @@ func (c *productController) CreateProduct(w http.ResponseWriter, r *http.Request
 
 	// Check permission action with shop
 	tokenString := strings.Split(r.Header.Get("Authorization"), " ")[1]
-	shopId := product.InfoProduct["shopId"].(int)
+	shopId := product.InfoProduct["shopId"].(float64)
 	isPermission, errIsPermission := c.productService.CheckPermissionShop(uint(shopId), tokenString)
 	if errIsPermission != nil {
 		internalServerError(w, r, errIsPermission)
@@ -67,6 +70,13 @@ func (c *productController) CreateProduct(w http.ResponseWriter, r *http.Request
 	}
 
 	// Create product
+	mapDataRequest, errMapData := c.utils.JwtDecode(tokenString)
+	if errMapData != nil {
+		internalServerError(w, r, errMapData)
+		return
+	}
+
+	product.InfoProduct["profileId"] = uint(mapDataRequest["profile_id"].(float64))
 	newProduct, errProduct := c.productService.CreateProduct(product.InfoProduct)
 	if errProduct != nil {
 		internalServerError(w, r, errProduct)
@@ -127,7 +137,7 @@ func (c *productController) CreateProduct(w http.ResponseWriter, r *http.Request
 	}
 
 	newProduct["_id"] = newProduct["_id"].(primitive.ObjectID).Hex()
-	c.queueProductService.PushMessInQueueToElasticSearch(newProduct)
+	c.queueProductService.PushMessInQueueToElasticSearch(newProduct, string(model.PRODUCT_TO_ELASTIC))
 
 	res := Response{
 		Data:    newProduct,
@@ -140,7 +150,7 @@ func (c *productController) CreateProduct(w http.ResponseWriter, r *http.Request
 }
 
 func (c *productController) UpdateProduct(w http.ResponseWriter, r *http.Request) {
-	var product service.UpdateProductPayload
+	var product request.UpdateProductRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
 		badRequest(w, r, err)
@@ -212,6 +222,9 @@ func (c *productController) UpdateProduct(w http.ResponseWriter, r *http.Request
 	}()
 	wg.Wait()
 
+	newProduct["_id"] = newProduct["_id"].(primitive.ObjectID).Hex()
+	c.queueProductService.PushMessInQueueToElasticSearch(newProduct, string(model.UPDATE_PRODUCT_TO_ELASTIC))
+
 	res := Response{
 		Data:    newProduct,
 		Message: "OK",
@@ -223,7 +236,7 @@ func (c *productController) UpdateProduct(w http.ResponseWriter, r *http.Request
 }
 
 func (c *productController) DeleteProduct(w http.ResponseWriter, r *http.Request) {
-	var product service.DeleyeProductPayload
+	var product request.DeleteProductRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
 		badRequest(w, r, err)
@@ -281,5 +294,6 @@ func NewProductController() ProductController {
 		clientFileGRPC:      proto.NewFileServiceClient(config.GetConnFileGrpc()),
 		warehouseService:    proto.NewWarehouseServiceClient(config.GetConnWarehouseGrpc()),
 		queueProductService: service.NewQueueProductService(),
+		utils:               utils.NewJwtUtils(),
 	}
 }

@@ -167,25 +167,3 @@ func NewProductService() ProductService {
 		utils:          utils.NewJwtUtils(),
 	}
 }
-
-type FileInfoPayload struct {
-	Name      string `json:"name"`
-	Format    string `json:"format"`
-	DataBytes []byte `json:"dataBytes"`
-}
-
-type CreateProductPayload struct {
-	InfoProduct map[string]interface{} `json:"infoProduct"`
-	Files       []FileInfoPayload      `json:"files"`
-}
-
-type UpdateProductPayload struct {
-	InfoProduct       map[string]interface{} `json:"infoProduct"`
-	Files             []FileInfoPayload      `json:"files"`
-	ListFileIdDeletes []uint64               `json:"listFileIdDeletes"`
-}
-
-type DeleyeProductPayload struct {
-	ProductId string `json:"productId"`
-	ShopId    uint64 `json:"shopId"`
-}
