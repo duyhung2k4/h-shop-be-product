@@ -278,6 +278,8 @@ func (c *productController) DeleteProduct(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	c.queueProductService.PushMessInQueueToElasticSearch(product, string(model.DELETE_PRODUCT_TO_ELASTIC))
+
 	res := Response{
 		Data:    nil,
 		Message: "OK",
