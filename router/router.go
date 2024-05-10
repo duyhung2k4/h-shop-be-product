@@ -49,6 +49,11 @@ func Router() http.Handler {
 			}
 			render.JSON(w, r, res)
 		})
+		r.Route("/public", func(public chi.Router) {
+			public.Route("/product", func(product chi.Router) {
+				product.Get("/", productController.GetProductById)
+			})
+		})
 		r.Route("/protected", func(protected chi.Router) {
 			protected.Use(jwtauth.Verifier(config.GetJWT()))
 			protected.Use(jwtauth.Authenticator(config.GetJWT()))

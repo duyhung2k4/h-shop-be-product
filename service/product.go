@@ -6,6 +6,7 @@ import (
 	"app/model"
 	"app/utils"
 	"context"
+	"encoding/json"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -15,10 +16,12 @@ import (
 type productService struct {
 	db             *mongo.Database
 	clientShopGRPC proto.ShopServiceClient
-	utils          utils.JwtUtils
+	jwtUtils       utils.JwtUtils
+	redisUtils     utils.RedisUtils
 }
 
 type ProductService interface {
+	GetProductById(productId string) (map[string]interface{}, error)
 	CreateProduct(product map[string]interface{}) (map[string]interface{}, error)
 	UpdateProduct(product map[string]interface{}) (map[string]interface{}, error)
 	DeleteProduct(productId string) error
@@ -29,29 +32,37 @@ type ProductService interface {
 	checkPermissionOfReformist(profileId uint, productId string) (bool, error)
 }
 
-func (s *productService) checkPermissionOfReformist(profileId uint, productId string) (bool, error) {
-	objID, errObjID := primitive.ObjectIDFromHex(productId)
-	if errObjID != nil {
-		return false, errObjID
-	}
-
+func (s *productService) GetProductById(productId string) (map[string]interface{}, error) {
 	var product map[string]interface{}
 
-	if err := s.db.
+	convertToObjectId, errConvert := primitive.ObjectIDFromHex(productId)
+	if errConvert != nil {
+		return model.MapDataEmpty, errConvert
+	}
+
+	filter := bson.M{
+		"_id": convertToObjectId,
+	}
+
+	err := s.db.
 		Collection(string(model.PRODUCT)).
-		FindOne(context.Background(), bson.M{"_id": objID}).Decode(&product); err != nil {
-		return false, err
+		FindOne(context.Background(), filter).
+		Decode(&product)
+
+	if err != nil {
+		return model.MapDataEmpty, err
 	}
 
-	if product["_id"] == nil {
-		return false, nil
+	product["_id"] = product["_id"].(primitive.ObjectID).Hex()
+	jsonProduct, errJsonProduct := json.Marshal(product)
+	if errJsonProduct != nil {
+		return model.MapDataEmpty, errJsonProduct
+	}
+	if err := s.redisUtils.Cache(product["_id"].(string), jsonProduct); err != nil {
+		return model.MapDataEmpty, err
 	}
 
-	if uint(product["profileId"].(int64)) != profileId {
-		return false, nil
-	}
-
-	return true, nil
+	return product, nil
 }
 
 func (s *productService) CreateProduct(product map[string]interface{}) (map[string]interface{}, error) {
@@ -120,7 +131,7 @@ func (s *productService) DeleteProduct(productId string) error {
 }
 
 func (s *productService) CheckPermissionShop(shopId uint, tokenString string) (*bool, error) {
-	mapDataRequest, errMapData := s.utils.JwtDecode(tokenString)
+	mapDataRequest, errMapData := s.jwtUtils.JwtDecode(tokenString)
 	if errMapData != nil {
 		return nil, errMapData
 	}
@@ -144,7 +155,7 @@ func (s *productService) CheckPermissionShop(shopId uint, tokenString string) (*
 }
 
 func (s *productService) CheckPermissionProduct(productId string, tokenString string) (*bool, error) {
-	mapDataRequest, errMapData := s.utils.JwtDecode(tokenString)
+	mapDataRequest, errMapData := s.jwtUtils.JwtDecode(tokenString)
 	if errMapData != nil {
 		return nil, errMapData
 	}
@@ -160,10 +171,36 @@ func (s *productService) CheckPermissionProduct(productId string, tokenString st
 	return &model.TRUE_VALUE, nil
 }
 
+func (s *productService) checkPermissionOfReformist(profileId uint, productId string) (bool, error) {
+	objID, errObjID := primitive.ObjectIDFromHex(productId)
+	if errObjID != nil {
+		return false, errObjID
+	}
+
+	var product map[string]interface{}
+
+	if err := s.db.
+		Collection(string(model.PRODUCT)).
+		FindOne(context.Background(), bson.M{"_id": objID}).Decode(&product); err != nil {
+		return false, err
+	}
+
+	if product["_id"] == nil {
+		return false, nil
+	}
+
+	if uint(product["profileId"].(int64)) != profileId {
+		return false, nil
+	}
+
+	return true, nil
+}
+
 func NewProductService() ProductService {
 	return &productService{
 		db:             config.GetDB(),
 		clientShopGRPC: proto.NewShopServiceClient(config.GetConnShopGRPC()),
-		utils:          utils.NewJwtUtils(),
+		jwtUtils:       utils.NewJwtUtils(),
+		redisUtils:     utils.NewUtilsRedis(),
 	}
 }

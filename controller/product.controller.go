@@ -16,6 +16,7 @@ import (
 	"sync"
 
 	"github.com/go-chi/render"
+	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -25,12 +26,51 @@ type productController struct {
 	warehouseService    proto.WarehouseServiceClient
 	queueProductService service.QueueProductService
 	utils               utils.JwtUtils
+	redisClient         *redis.Client
 }
 
 type ProductController interface {
+	GetProductById(w http.ResponseWriter, r *http.Request)
 	CreateProduct(w http.ResponseWriter, r *http.Request)
 	UpdateProduct(w http.ResponseWriter, r *http.Request)
 	DeleteProduct(w http.ResponseWriter, r *http.Request)
+}
+
+func (c *productController) GetProductById(w http.ResponseWriter, r *http.Request) {
+	params := r.URL.Query()
+	productId := params.Get("id")
+
+	if productId == "" {
+		badRequest(w, r, errors.New("productId empty"))
+		return
+	}
+
+	productInRedis, errProductInRedis := c.redisClient.Get(context.Background(), productId).Result()
+	if errProductInRedis == nil {
+		res := Response{
+			Data:    productInRedis,
+			Message: "OK",
+			Status:  200,
+			Error:   nil,
+		}
+		render.JSON(w, r, res)
+		return
+	}
+
+	product, err := c.productService.GetProductById(productId)
+	if err != nil {
+		internalServerError(w, r, err)
+		return
+	}
+
+	res := Response{
+		Data:    product,
+		Message: "OK",
+		Status:  200,
+		Error:   nil,
+	}
+
+	render.JSON(w, r, res)
 }
 
 func (c *productController) CreateProduct(w http.ResponseWriter, r *http.Request) {
@@ -297,5 +337,6 @@ func NewProductController() ProductController {
 		warehouseService:    proto.NewWarehouseServiceClient(config.GetConnWarehouseGrpc()),
 		queueProductService: service.NewQueueProductService(),
 		utils:               utils.NewJwtUtils(),
+		redisClient:         config.GetRDB(),
 	}
 }
