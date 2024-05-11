@@ -6,7 +6,6 @@ import (
 	"app/model"
 	"app/utils"
 	"context"
-	"encoding/json"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -54,11 +53,7 @@ func (s *productService) GetProductById(productId string) (map[string]interface{
 	}
 
 	product["_id"] = product["_id"].(primitive.ObjectID).Hex()
-	jsonProduct, errJsonProduct := json.Marshal(product)
-	if errJsonProduct != nil {
-		return model.MapDataEmpty, errJsonProduct
-	}
-	if err := s.redisUtils.Cache(product["_id"].(string), jsonProduct); err != nil {
+	if err := s.redisUtils.Cache(product["_id"].(string), product); err != nil {
 		return model.MapDataEmpty, err
 	}
 
@@ -113,6 +108,9 @@ func (s *productService) UpdateProduct(product map[string]interface{}) (map[stri
 		return map[string]interface{}{}, err
 	}
 
+	newProduct["_id"] = newProduct["_id"].(primitive.ObjectID).Hex()
+	s.redisUtils.Cache(newProduct["_id"].(string), newProduct)
+
 	return newProduct, nil
 }
 
@@ -126,6 +124,8 @@ func (s *productService) DeleteProduct(productId string) error {
 		context.Background(),
 		bson.M{"_id": objID},
 	)
+
+	s.redisUtils.Delete(productId)
 
 	return nil
 }

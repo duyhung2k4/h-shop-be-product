@@ -16,7 +16,6 @@ import (
 	"sync"
 
 	"github.com/go-chi/render"
-	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -25,8 +24,8 @@ type productController struct {
 	clientFileGRPC      proto.FileServiceClient
 	warehouseService    proto.WarehouseServiceClient
 	queueProductService service.QueueProductService
-	utils               utils.JwtUtils
-	redisClient         *redis.Client
+	jwtUtils            utils.JwtUtils
+	redisUtils          utils.RedisUtils
 }
 
 type ProductController interface {
@@ -45,7 +44,7 @@ func (c *productController) GetProductById(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	productInRedis, errProductInRedis := c.redisClient.Get(context.Background(), productId).Result()
+	productInRedis, errProductInRedis := c.redisUtils.GetData(productId)
 	if errProductInRedis == nil {
 		res := Response{
 			Data:    productInRedis,
@@ -110,7 +109,7 @@ func (c *productController) CreateProduct(w http.ResponseWriter, r *http.Request
 	}
 
 	// Create product
-	mapDataRequest, errMapData := c.utils.JwtDecode(tokenString)
+	mapDataRequest, errMapData := c.jwtUtils.JwtDecode(tokenString)
 	if errMapData != nil {
 		internalServerError(w, r, errMapData)
 		return
@@ -336,7 +335,7 @@ func NewProductController() ProductController {
 		clientFileGRPC:      proto.NewFileServiceClient(config.GetConnFileGrpc()),
 		warehouseService:    proto.NewWarehouseServiceClient(config.GetConnWarehouseGrpc()),
 		queueProductService: service.NewQueueProductService(),
-		utils:               utils.NewJwtUtils(),
-		redisClient:         config.GetRDB(),
+		jwtUtils:            utils.NewJwtUtils(),
+		redisUtils:          utils.NewUtilsRedis(),
 	}
 }

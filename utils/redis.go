@@ -14,17 +14,23 @@ type redisUtils struct {
 
 type RedisUtils interface {
 	Cache(key string, value interface{}) error
+	Delete(key string) error
 	GetData(key string) (interface{}, error)
 }
 
 func (u *redisUtils) Cache(key string, value interface{}) error {
 	dataByte, _ := json.Marshal(value)
-	err := u.redisClient.Set(context.Background(), string(dataByte), value, 0).Err()
+	err := u.redisClient.Set(context.Background(), key, dataByte, 0).Err()
+	return err
+}
+
+func (u *redisUtils) Delete(key string) error {
+	err := u.redisClient.Del(context.Background(), key).Err()
 	return err
 }
 
 func (u *redisUtils) GetData(key string) (interface{}, error) {
-	var value map[string]interface{}
+	var value interface{}
 	result, err := u.redisClient.Get(context.Background(), key).Result()
 	if err != nil {
 		return nil, err
