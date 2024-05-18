@@ -97,16 +97,6 @@ func (c *productController) CreateProduct(w http.ResponseWriter, r *http.Request
 
 	// Check permission action with shop
 	tokenString := strings.Split(r.Header.Get("Authorization"), " ")[1]
-	shopId := product.InfoProduct["shopId"].(float64)
-	isPermission, errIsPermission := c.productService.CheckPermissionShop(uint(shopId), tokenString)
-	if errIsPermission != nil {
-		internalServerError(w, r, errIsPermission)
-		return
-	}
-	if isPermission == &model.FALSE_VALUE {
-		handleError(w, r, errors.New("not permission"), 404)
-		return
-	}
 
 	// Create product
 	mapDataRequest, errMapData := c.jwtUtils.JwtDecode(tokenString)

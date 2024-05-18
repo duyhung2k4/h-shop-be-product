@@ -2,9 +2,9 @@ package model
 
 var (
 	MapDefaultFieldProduct = map[string]string{
-		"shopId":     "shopId",
 		"categoryId": "categoryId",
 		"price":      "price",
+		"name":       "name",
 	}
 )
 

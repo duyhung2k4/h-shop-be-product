@@ -20,6 +20,8 @@ const _ = grpc.SupportPackageIsVersion7
 
 const (
 	ShopService_CheckShopPermission_FullMethodName = "/proto.ShopService/CheckShopPermission"
+	ShopService_CreateShop_FullMethodName          = "/proto.ShopService/CreateShop"
+	ShopService_GetShopByProfileId_FullMethodName  = "/proto.ShopService/GetShopByProfileId"
 )
 
 // ShopServiceClient is the client API for ShopService service.
@@ -27,6 +29,8 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ShopServiceClient interface {
 	CheckShopPermission(ctx context.Context, in *CheckShopPermissionReq, opts ...grpc.CallOption) (*CheckShopPermissionRes, error)
+	CreateShop(ctx context.Context, in *CreateShopReq, opts ...grpc.CallOption) (*CreateShopRes, error)
+	GetShopByProfileId(ctx context.Context, in *GetShopByProfileIdReq, opts ...grpc.CallOption) (*GetShopByProfileIdRes, error)
 }
 
 type shopServiceClient struct {
@@ -46,11 +50,31 @@ func (c *shopServiceClient) CheckShopPermission(ctx context.Context, in *CheckSh
 	return out, nil
 }
 
+func (c *shopServiceClient) CreateShop(ctx context.Context, in *CreateShopReq, opts ...grpc.CallOption) (*CreateShopRes, error) {
+	out := new(CreateShopRes)
+	err := c.cc.Invoke(ctx, ShopService_CreateShop_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *shopServiceClient) GetShopByProfileId(ctx context.Context, in *GetShopByProfileIdReq, opts ...grpc.CallOption) (*GetShopByProfileIdRes, error) {
+	out := new(GetShopByProfileIdRes)
+	err := c.cc.Invoke(ctx, ShopService_GetShopByProfileId_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ShopServiceServer is the server API for ShopService service.
 // All implementations must embed UnimplementedShopServiceServer
 // for forward compatibility
 type ShopServiceServer interface {
 	CheckShopPermission(context.Context, *CheckShopPermissionReq) (*CheckShopPermissionRes, error)
+	CreateShop(context.Context, *CreateShopReq) (*CreateShopRes, error)
+	GetShopByProfileId(context.Context, *GetShopByProfileIdReq) (*GetShopByProfileIdRes, error)
 	mustEmbedUnimplementedShopServiceServer()
 }
 
@@ -60,6 +84,12 @@ type UnimplementedShopServiceServer struct {
 
 func (UnimplementedShopServiceServer) CheckShopPermission(context.Context, *CheckShopPermissionReq) (*CheckShopPermissionRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CheckShopPermission not implemented")
+}
+func (UnimplementedShopServiceServer) CreateShop(context.Context, *CreateShopReq) (*CreateShopRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateShop not implemented")
+}
+func (UnimplementedShopServiceServer) GetShopByProfileId(context.Context, *GetShopByProfileIdReq) (*GetShopByProfileIdRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetShopByProfileId not implemented")
 }
 func (UnimplementedShopServiceServer) mustEmbedUnimplementedShopServiceServer() {}
 
@@ -92,6 +122,42 @@ func _ShopService_CheckShopPermission_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ShopService_CreateShop_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateShopReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ShopServiceServer).CreateShop(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ShopService_CreateShop_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ShopServiceServer).CreateShop(ctx, req.(*CreateShopReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ShopService_GetShopByProfileId_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetShopByProfileIdReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ShopServiceServer).GetShopByProfileId(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ShopService_GetShopByProfileId_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ShopServiceServer).GetShopByProfileId(ctx, req.(*GetShopByProfileIdReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ShopService_ServiceDesc is the grpc.ServiceDesc for ShopService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -102,6 +168,14 @@ var ShopService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CheckShopPermission",
 			Handler:    _ShopService_CheckShopPermission_Handler,
+		},
+		{
+			MethodName: "CreateShop",
+			Handler:    _ShopService_CreateShop_Handler,
+		},
+		{
+			MethodName: "GetShopByProfileId",
+			Handler:    _ShopService_GetShopByProfileId_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

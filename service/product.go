@@ -62,6 +62,13 @@ func (s *productService) GetProductById(productId string) (map[string]interface{
 
 func (s *productService) CreateProduct(product map[string]interface{}) (map[string]interface{}, error) {
 	var newProduct map[string]interface{}
+	profileId := product["profileId"].(uint)
+	resultProfile, errShopId := s.clientShopGRPC.GetShopByProfileId(context.Background(), &proto.GetShopByProfileIdReq{ProfileId: uint64(profileId)})
+
+	if errShopId != nil {
+		return nil, errShopId
+	}
+	product["shopId"] = resultProfile.ShopId
 
 	result, errInsert := s.db.Collection(string(model.PRODUCT)).InsertOne(context.Background(), product)
 	if errInsert != nil {
