@@ -8,6 +8,7 @@ type FileInfoRequest struct {
 
 type CreateProductRequest struct {
 	InfoProduct map[string]interface{} `json:"infoProduct"`
+	Avatar      *FileInfoRequest       `json:"avatar"`
 	Files       []FileInfoRequest      `json:"files"`
 }
 

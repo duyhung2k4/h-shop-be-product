@@ -29,10 +29,35 @@ type productController struct {
 }
 
 type ProductController interface {
+	GetProductByProfileId(w http.ResponseWriter, r *http.Request)
 	GetProductById(w http.ResponseWriter, r *http.Request)
 	CreateProduct(w http.ResponseWriter, r *http.Request)
 	UpdateProduct(w http.ResponseWriter, r *http.Request)
 	DeleteProduct(w http.ResponseWriter, r *http.Request)
+}
+
+func (c *productController) GetProductByProfileId(w http.ResponseWriter, r *http.Request) {
+	mapDataRequest, errMapData := c.jwtUtils.GetMapData(r)
+	if errMapData != nil {
+		internalServerError(w, r, errMapData)
+		return
+	}
+
+	profileId := uint(mapDataRequest["profile_id"].(float64))
+	products, err := c.productService.GetProductbyProfileId(uint64(profileId))
+	if err != nil {
+		internalServerError(w, r, err)
+		return
+	}
+
+	res := Response{
+		Data:    products,
+		Message: "OK",
+		Status:  200,
+		Error:   nil,
+	}
+
+	render.JSON(w, r, res)
 }
 
 func (c *productController) GetProductById(w http.ResponseWriter, r *http.Request) {
@@ -95,11 +120,8 @@ func (c *productController) CreateProduct(w http.ResponseWriter, r *http.Request
 		}
 	}
 
-	// Check permission action with shop
-	tokenString := strings.Split(r.Header.Get("Authorization"), " ")[1]
-
 	// Create product
-	mapDataRequest, errMapData := c.jwtUtils.JwtDecode(tokenString)
+	mapDataRequest, errMapData := c.jwtUtils.GetMapData(r)
 	if errMapData != nil {
 		internalServerError(w, r, errMapData)
 		return
@@ -114,7 +136,7 @@ func (c *productController) CreateProduct(w http.ResponseWriter, r *http.Request
 
 	var errHandle error = nil
 	var wg sync.WaitGroup
-	wg.Add(2)
+	wg.Add(3)
 
 	go func() {
 		// Create warehouse
@@ -129,7 +151,26 @@ func (c *productController) CreateProduct(w http.ResponseWriter, r *http.Request
 		}
 		wg.Done()
 	}()
+	go func() {
+		// Add avatar
+		if product.Avatar != nil {
+			newAvatar, err := c.clientFileGRPC.InsertAvatarProduct(context.Background(), &proto.InsertAvatarProductReq{
+				Data:      product.Avatar.DataBytes,
+				Format:    product.Avatar.Format,
+				Name:      product.Avatar.Name,
+				ProductId: newProduct["_id"].(primitive.ObjectID).Hex(),
+			})
 
+			if err != nil {
+				errHandle = err
+				wg.Done()
+				return
+			}
+
+			newProduct["avatar"] = newAvatar
+		}
+		wg.Done()
+	}()
 	go func() {
 		// Handle file
 		if len(product.Files) > 0 {

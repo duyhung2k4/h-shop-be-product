@@ -60,6 +60,8 @@ func Router() http.Handler {
 			protected.Use(middlewares.ValidateExpAccessToken())
 
 			protected.Route("/product", func(product chi.Router) {
+				product.Get("/all", productController.GetProductByProfileId)
+				product.Get("/detail", productController.GetProductById)
 				product.Post("/", productController.CreateProduct)
 				product.Put("/", productController.UpdateProduct)
 				product.Delete("/", productController.DeleteProduct)

@@ -20,5 +20,6 @@ var (
 	TRUE_VALUE  = true
 	FALSE_VALUE = false
 
-	MapDataEmpty map[string]interface{}
+	MapDataEmpty    map[string]interface{}
+	ArrMapDataEmpty []map[string]interface{}
 )

@@ -6,6 +6,7 @@ import (
 	"app/model"
 	"app/utils"
 	"context"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -20,6 +21,7 @@ type productService struct {
 }
 
 type ProductService interface {
+	GetProductbyProfileId(profileId uint64) ([]map[string]interface{}, error)
 	GetProductById(productId string) (map[string]interface{}, error)
 	CreateProduct(product map[string]interface{}) (map[string]interface{}, error)
 	UpdateProduct(product map[string]interface{}) (map[string]interface{}, error)
@@ -29,6 +31,26 @@ type ProductService interface {
 	CheckPermissionProduct(productId string, tokenString string) (*bool, error)
 
 	checkPermissionOfReformist(profileId uint, productId string) (bool, error)
+}
+
+func (s *productService) GetProductbyProfileId(profileId uint64) ([]map[string]interface{}, error) {
+	var products []map[string]interface{}
+
+	filter := bson.M{
+		"profileId": profileId,
+		"deleteAt":  nil,
+	}
+
+	cur, err := s.db.Collection(string(model.PRODUCT)).Find(context.Background(), filter)
+	if err != nil {
+		return model.ArrMapDataEmpty, err
+	}
+
+	if err := cur.All(context.Background(), &products); err != nil {
+		return model.ArrMapDataEmpty, err
+	}
+
+	return products, nil
 }
 
 func (s *productService) GetProductById(productId string) (map[string]interface{}, error) {
@@ -69,6 +91,9 @@ func (s *productService) CreateProduct(product map[string]interface{}) (map[stri
 		return nil, errShopId
 	}
 	product["shopId"] = resultProfile.ShopId
+	product["createAt"] = time.Now()
+	product["updateAt"] = nil
+	product["deleteAt"] = nil
 
 	result, errInsert := s.db.Collection(string(model.PRODUCT)).InsertOne(context.Background(), product)
 	if errInsert != nil {
@@ -94,6 +119,7 @@ func (s *productService) UpdateProduct(product map[string]interface{}) (map[stri
 		return map[string]interface{}{}, errObjID
 	}
 	product["_id"] = objID
+	product["updateAt"] = time.Now()
 
 	_, errUpdate := s.db.Collection(string(model.PRODUCT)).UpdateOne(
 		context.Background(),
@@ -127,9 +153,16 @@ func (s *productService) DeleteProduct(productId string) error {
 		return errObjID
 	}
 
-	s.db.Collection(string(model.PRODUCT)).DeleteOne(
+	s.db.Collection(string(model.PRODUCT)).UpdateOne(
 		context.Background(),
-		bson.M{"_id": objID},
+		bson.M{
+			"_id": objID,
+		},
+		bson.M{
+			"$set": map[string]interface{}{
+				"deleteAt": time.Now(),
+			},
+		},
 	)
 
 	s.redisUtils.Delete(productId)
