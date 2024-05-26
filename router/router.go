@@ -15,11 +15,6 @@ import (
 	"github.com/go-chi/render"
 )
 
-type TypeReturn struct {
-	Key   string
-	Value interface{}
-}
-
 func Router() http.Handler {
 	app := chi.NewRouter()
 

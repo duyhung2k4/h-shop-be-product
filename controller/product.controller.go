@@ -249,19 +249,31 @@ func (c *productController) UpdateProduct(w http.ResponseWriter, r *http.Request
 
 	// Handle file
 	var wg sync.WaitGroup
-	wg.Add(2)
+	var errHandleFile = err
+	wg.Add(3)
 
 	go func() {
 		if len(product.ListFileIdDeletes) > 0 {
-			_, errDeleteFile := c.clientFileGRPC.DeleteFile(context.Background(), &proto.DeleteFileReq{
+			_, err := c.clientFileGRPC.DeleteFile(context.Background(), &proto.DeleteFileReq{
 				Ids: product.ListFileIdDeletes,
 			})
-			if errDeleteFile != nil {
-				internalServerError(w, r, errDeleteFile)
-				return
-			}
+			errHandleFile = err
 		}
 
+		wg.Done()
+	}()
+
+	go func() {
+		if product.Avatar != nil {
+			_, err := c.clientFileGRPC.InsertAvatarProduct(context.Background(), &proto.InsertAvatarProductReq{
+				ProductId: productId,
+				Name:      product.Avatar.Name,
+				Format:    product.Avatar.Format,
+				Data:      product.Avatar.DataBytes,
+			})
+
+			errHandleFile = err
+		}
 		wg.Done()
 	}()
 
@@ -269,7 +281,8 @@ func (c *productController) UpdateProduct(w http.ResponseWriter, r *http.Request
 		if len(product.Files) > 0 {
 			postFile, errPostFile := c.clientFileGRPC.InsertFile(context.Background())
 			if errPostFile != nil {
-				internalServerError(w, r, errPostFile)
+				errHandleFile = errPostFile
+				wg.Done()
 				return
 			}
 			for _, file := range product.Files {
@@ -283,7 +296,8 @@ func (c *productController) UpdateProduct(w http.ResponseWriter, r *http.Request
 			}
 			resFile, errResFile := postFile.CloseAndRecv()
 			if errResFile != nil {
-				internalServerError(w, r, errResFile)
+				errHandleFile = errResFile
+				wg.Done()
 				return
 			}
 			newProduct["fileIds"] = resFile.FileIds
@@ -291,6 +305,11 @@ func (c *productController) UpdateProduct(w http.ResponseWriter, r *http.Request
 		wg.Done()
 	}()
 	wg.Wait()
+
+	if errHandleFile != nil {
+		internalServerError(w, r, errHandleFile)
+		return
+	}
 
 	newProduct["_id"] = newProduct["_id"].(primitive.ObjectID).Hex()
 	c.queueProductService.PushMessInQueueToElasticSearch(newProduct, string(model.UPDATE_PRODUCT_TO_ELASTIC))

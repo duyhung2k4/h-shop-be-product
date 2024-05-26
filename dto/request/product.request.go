@@ -14,6 +14,7 @@ type CreateProductRequest struct {
 
 type UpdateProductRequest struct {
 	InfoProduct       map[string]interface{} `json:"infoProduct"`
+	Avatar            *FileInfoRequest       `json:"avatar"`
 	Files             []FileInfoRequest      `json:"files"`
 	ListFileIdDeletes []uint64               `json:"listFileIdDeletes"`
 }
