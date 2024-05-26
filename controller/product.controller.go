@@ -69,17 +69,17 @@ func (c *productController) GetProductById(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	productInRedis, errProductInRedis := c.redisUtils.GetData(productId)
-	if errProductInRedis == nil {
-		res := Response{
-			Data:    productInRedis,
-			Message: "OK",
-			Status:  200,
-			Error:   nil,
-		}
-		render.JSON(w, r, res)
-		return
-	}
+	// productInRedis, errProductInRedis := c.redisUtils.GetData(productId)
+	// if errProductInRedis == nil {
+	// 	res := Response{
+	// 		Data:    productInRedis,
+	// 		Message: "OK",
+	// 		Status:  200,
+	// 		Error:   nil,
+	// 	}
+	// 	render.JSON(w, r, res)
+	// 	return
+	// }
 
 	product, err := c.productService.GetProductById(productId)
 	if err != nil {
@@ -290,7 +290,7 @@ func (c *productController) UpdateProduct(w http.ResponseWriter, r *http.Request
 					Data:      file.DataBytes,
 					Format:    file.Format,
 					Name:      file.Name,
-					ProductId: newProduct["_id"].(primitive.ObjectID).Hex(),
+					ProductId: newProduct["_id"].(string),
 					TypeModel: string(model.PRODUCT),
 				})
 			}
@@ -311,7 +311,6 @@ func (c *productController) UpdateProduct(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	newProduct["_id"] = newProduct["_id"].(primitive.ObjectID).Hex()
 	c.queueProductService.PushMessInQueueToElasticSearch(newProduct, string(model.UPDATE_PRODUCT_TO_ELASTIC))
 
 	res := Response{
