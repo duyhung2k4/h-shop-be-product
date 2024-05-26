@@ -69,17 +69,17 @@ func (c *productController) GetProductById(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// productInRedis, errProductInRedis := c.redisUtils.GetData(productId)
-	// if errProductInRedis == nil {
-	// 	res := Response{
-	// 		Data:    productInRedis,
-	// 		Message: "OK",
-	// 		Status:  200,
-	// 		Error:   nil,
-	// 	}
-	// 	render.JSON(w, r, res)
-	// 	return
-	// }
+	productInRedis, errProductInRedis := c.redisUtils.GetData(productId)
+	if errProductInRedis == nil {
+		res := Response{
+			Data:    productInRedis,
+			Message: "OK",
+			Status:  200,
+			Error:   nil,
+		}
+		render.JSON(w, r, res)
+		return
+	}
 
 	product, err := c.productService.GetProductById(productId)
 	if err != nil {
@@ -312,6 +312,10 @@ func (c *productController) UpdateProduct(w http.ResponseWriter, r *http.Request
 	}
 
 	c.queueProductService.PushMessInQueueToElasticSearch(newProduct, string(model.UPDATE_PRODUCT_TO_ELASTIC))
+	if err := c.redisUtils.Cache(newProduct["_id"].(string), newProduct); err != nil {
+		internalServerError(w, r, err)
+		return
+	}
 
 	res := Response{
 		Data:    newProduct,
@@ -367,6 +371,10 @@ func (c *productController) DeleteProduct(w http.ResponseWriter, r *http.Request
 	}
 
 	c.queueProductService.PushMessInQueueToElasticSearch(product, string(model.DELETE_PRODUCT_TO_ELASTIC))
+	if err := c.redisUtils.Delete(product.ProductId); err != nil {
+		internalServerError(w, r, err)
+		return
+	}
 
 	res := Response{
 		Data:    nil,
