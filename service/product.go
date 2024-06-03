@@ -11,6 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type productService struct {
@@ -112,23 +113,31 @@ func (s *productService) CreateProduct(product map[string]interface{}) (map[stri
 
 func (s *productService) UpdateProduct(product map[string]interface{}) (map[string]interface{}, error) {
 	var newProduct map[string]interface{}
+	var currentProduct map[string]interface{}
 
 	idString := product["_id"].(string)
 	objID, errObjID := primitive.ObjectIDFromHex(idString)
 	if errObjID != nil {
 		return map[string]interface{}{}, errObjID
 	}
+
+	if err := s.db.Collection(string(model.PRODUCT)).FindOne(context.Background(), bson.M{"_id": objID}).Decode(&currentProduct); err != nil {
+		return nil, err
+	}
+
 	product["_id"] = objID
 	product["updateAt"] = time.Now()
+	product["createAt"] = currentProduct["createAt"]
+	product["profileId"] = currentProduct["profileId"]
+	product["deleteAt"] = nil
 
-	_, errUpdate := s.db.Collection(string(model.PRODUCT)).UpdateOne(
+	_, errUpdate := s.db.Collection(string(model.PRODUCT)).ReplaceOne(
 		context.Background(),
 		bson.M{
 			"_id": objID,
 		},
-		bson.M{
-			"$set": product,
-		},
+		product,
+		options.Replace().SetUpsert(true),
 	)
 	if errUpdate != nil {
 		return map[string]interface{}{}, errUpdate
@@ -221,15 +230,14 @@ func (s *productService) checkPermissionOfReformist(profileId uint, productId st
 
 	if err := s.db.
 		Collection(string(model.PRODUCT)).
-		FindOne(context.Background(), bson.M{"_id": objID}).Decode(&product); err != nil {
+		FindOne(context.Background(), bson.M{
+			"_id":       objID,
+			"profileId": profileId,
+		}).Decode(&product); err != nil {
 		return false, err
 	}
 
 	if product["_id"] == nil {
-		return false, nil
-	}
-
-	if uint(product["profileId"].(int64)) != profileId {
 		return false, nil
 	}
 
