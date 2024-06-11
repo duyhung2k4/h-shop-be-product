@@ -11,11 +11,13 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type middlewares struct {
 	utils utils.JwtUtils
 	rdb   *redis.Client
+	db    *mongo.Client
 }
 
 type Middlewares interface {
