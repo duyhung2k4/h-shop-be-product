@@ -154,7 +154,7 @@ func (c *productController) CreateProduct(w http.ResponseWriter, r *http.Request
 	go func() {
 		// Add avatar
 		if product.Avatar != nil {
-			newAvatar, err := c.clientFileGRPC.InsertAvatarProduct(context.Background(), &proto.InsertAvatarProductReq{
+			_, err := c.clientFileGRPC.InsertAvatarProduct(context.Background(), &proto.InsertAvatarProductReq{
 				Data:      product.Avatar.DataBytes,
 				Format:    product.Avatar.Format,
 				Name:      product.Avatar.Name,
@@ -166,8 +166,6 @@ func (c *productController) CreateProduct(w http.ResponseWriter, r *http.Request
 				wg.Done()
 				return
 			}
-
-			newProduct["avatar"] = newAvatar
 		}
 		wg.Done()
 	}()
@@ -189,13 +187,12 @@ func (c *productController) CreateProduct(w http.ResponseWriter, r *http.Request
 					TypeModel: string(model.PRODUCT),
 				})
 			}
-			resFile, errResFile := postFile.CloseAndRecv()
+			_, errResFile := postFile.CloseAndRecv()
 			if errResFile != nil {
 				errHandle = errPostFile
 				wg.Done()
 				return
 			}
-			newProduct["fileIds"] = resFile.FileIds
 		}
 		wg.Done()
 	}()
