@@ -36,6 +36,7 @@ func Router() http.Handler {
 
 	middlewares := middlewares.NewMiddlewares()
 	productController := controller.NewProductController()
+	typeInWarehouseController := controller.NewTypeInWarehouseController()
 
 	app.Route("/product/api/v1", func(r chi.Router) {
 		r.Get("/ping", func(w http.ResponseWriter, r *http.Request) {
@@ -60,6 +61,10 @@ func Router() http.Handler {
 				product.Post("/", productController.CreateProduct)
 				product.Put("/", productController.UpdateProduct)
 				product.Delete("/", productController.DeleteProduct)
+			})
+
+			protected.Route("/type-in-warehouse", func(typeInWarehouse chi.Router) {
+				typeInWarehouse.Post("/", typeInWarehouseController.InsertTypeInWarehouse)
 			})
 		})
 	})
