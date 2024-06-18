@@ -6,6 +6,7 @@ import (
 	"app/grpc/proto"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/go-chi/render"
@@ -16,6 +17,7 @@ type typeInWarehouseController struct {
 }
 
 type TypeInWarehouseController interface {
+	GetTypeInWarehouseByProductId(w http.ResponseWriter, r *http.Request)
 	InsertTypeInWarehouse(w http.ResponseWriter, r *http.Request)
 }
 
@@ -41,6 +43,34 @@ func (c *typeInWarehouseController) InsertTypeInWarehouse(w http.ResponseWriter,
 
 	res := Response{
 		Data:    result,
+		Message: "OK",
+		Status:  200,
+		Error:   nil,
+	}
+
+	render.JSON(w, r, res)
+}
+
+func (c *typeInWarehouseController) GetTypeInWarehouseByProductId(w http.ResponseWriter, r *http.Request) {
+	params := r.URL.Query()
+
+	productId := params.Get("id")
+	if productId == "" {
+		badRequest(w, r, errors.New("id not empty"))
+		return
+	}
+
+	result, err := c.typeInWarehouseGRPC.GetTypeInWarehouseByProductId(context.Background(), &proto.GetTypeInWarehouseByProductIdReq{
+		ProductId: productId,
+	})
+
+	if err != nil {
+		internalServerError(w, r, err)
+		return
+	}
+
+	res := Response{
+		Data:    result.Data,
 		Message: "OK",
 		Status:  200,
 		Error:   nil,
