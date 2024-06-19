@@ -21,6 +21,7 @@ type warehouseController struct {
 }
 
 type WarehouseController interface {
+	GetWarehouseByProductId(w http.ResponseWriter, r *http.Request)
 	UpdateWarehouse(w http.ResponseWriter, r *http.Request)
 }
 
@@ -51,6 +52,34 @@ func (c *warehouseController) UpdateWarehouse(w http.ResponseWriter, r *http.Req
 	result, err := c.grpcWarehouse.Update(context.Background(), &proto.UpdateWarehouseReq{
 		Id:    uint64(payload.Id),
 		Count: uint64(payload.Count),
+	})
+
+	if err != nil {
+		internalServerError(w, r, err)
+		return
+	}
+
+	res := Response{
+		Data:    result,
+		Message: "OK",
+		Status:  200,
+		Error:   nil,
+	}
+
+	render.JSON(w, r, res)
+}
+
+func (c *warehouseController) GetWarehouseByProductId(w http.ResponseWriter, r *http.Request) {
+	params := r.URL.Query()
+
+	productId := params.Get("id")
+	if productId == "" {
+		badRequest(w, r, errors.New("id cannot be empty"))
+		return
+	}
+
+	result, err := c.grpcWarehouse.GetWarehouseByProductId(context.Background(), &proto.GetWarehouseByProductIdReq{
+		ProductId: productId,
 	})
 
 	if err != nil {
