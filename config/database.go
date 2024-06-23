@@ -28,6 +28,8 @@ func connectMongoDB(migrate bool) error {
 	if migrate {
 		// Create Collection
 		db.CreateCollection(context.Background(), string(model.PRODUCT))
+		db.CreateCollection(context.Background(), string(model.HEART))
+		db.CreateCollection(context.Background(), string(model.CART))
 
 		// Index
 		// Index - Product

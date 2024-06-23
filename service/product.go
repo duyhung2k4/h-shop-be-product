@@ -28,6 +28,14 @@ type ProductService interface {
 	UpdateProduct(product map[string]interface{}) (map[string]interface{}, error)
 	DeleteProduct(productId string) error
 
+	Heart(productId string, profileId uint) error
+	IsHeart(productId string, profileId uint) bool
+	GetHeart(profileId uint) ([]map[string]interface{}, error)
+
+	Cart(productId string, profileId uint) error
+	IsCart(productId string, profileId uint) bool
+	GetCart(profileId uint) ([]map[string]interface{}, error)
+
 	CheckPermissionShop(shopId uint, tokenString string) (*bool, error)
 	CheckPermissionProduct(productId string, tokenString string) (*bool, error)
 
@@ -218,6 +226,157 @@ func (s *productService) CheckPermissionProduct(productId string, tokenString st
 		return &model.FALSE_VALUE, nil
 	}
 	return &model.TRUE_VALUE, nil
+}
+
+func (s *productService) Heart(productId string, profileId uint) error {
+	isHeart := s.IsHeart(productId, profileId)
+
+	heart := map[string]interface{}{
+		"productId": productId,
+		"profileId": profileId,
+	}
+
+	if !isHeart {
+		_, errInsert := s.db.Collection(string(model.HEART)).InsertOne(context.Background(), heart)
+		return errInsert
+	}
+
+	_, err := s.db.Collection(string(model.HEART)).DeleteOne(context.Background(), bson.M{
+		"productId": productId,
+		"profileId": profileId,
+	})
+
+	return err
+}
+
+func (s *productService) GetHeart(profileId uint) ([]map[string]interface{}, error) {
+	var hearts []map[string]interface{}
+	ids := []primitive.ObjectID{}
+
+	filterHeart := bson.M{
+		"profileId": profileId,
+	}
+
+	cur, err := s.db.Collection(string(model.HEART)).Find(context.Background(), filterHeart)
+	if err != nil {
+		return model.ArrMapDataEmpty, err
+	}
+
+	if err := cur.All(context.Background(), &hearts); err != nil {
+		return model.ArrMapDataEmpty, err
+	}
+
+	for _, item := range hearts {
+		objectID, _ := primitive.ObjectIDFromHex(item["productId"].(string))
+		ids = append(ids, objectID)
+	}
+
+	var products []map[string]interface{}
+	filterProduct := bson.M{"_id": bson.M{"$in": ids}}
+
+	curProduct, errProduct := s.db.Collection(string(model.PRODUCT)).Find(context.Background(), filterProduct)
+	if errProduct != nil {
+		return model.ArrMapDataEmpty, errProduct
+	}
+
+	if err := curProduct.All(context.Background(), &products); err != nil {
+		return model.ArrMapDataEmpty, err
+	}
+
+	return products, nil
+}
+
+func (s *productService) IsHeart(productId string, profileId uint) bool {
+	var heart map[string]interface{}
+	if err := s.db.
+		Collection(string(model.HEART)).
+		FindOne(context.Background(), bson.M{
+			"profileId": profileId,
+			"productId": productId,
+		}).Decode(&heart); err != nil {
+		return false
+	}
+
+	if heart["_id"] == nil {
+		return false
+	}
+
+	return true
+}
+
+func (s *productService) Cart(productId string, profileId uint) error {
+	isCart := s.IsCart(productId, profileId)
+
+	cart := map[string]interface{}{
+		"productId": productId,
+		"profileId": profileId,
+	}
+
+	if !isCart {
+		_, errInsert := s.db.Collection(string(model.CART)).InsertOne(context.Background(), cart)
+		return errInsert
+	}
+
+	_, err := s.db.Collection(string(model.CART)).DeleteOne(context.Background(), bson.M{
+		"productId": productId,
+		"profileId": profileId,
+	})
+
+	return err
+}
+
+func (s *productService) IsCart(productId string, profileId uint) bool {
+	var cart map[string]interface{}
+	if err := s.db.
+		Collection(string(model.CART)).
+		FindOne(context.Background(), bson.M{
+			"profileId": profileId,
+			"productId": productId,
+		}).Decode(&cart); err != nil {
+		return false
+	}
+
+	if cart["_id"] == nil {
+		return false
+	}
+
+	return true
+}
+
+func (s *productService) GetCart(profileId uint) ([]map[string]interface{}, error) {
+	var carts []map[string]interface{}
+	ids := []primitive.ObjectID{}
+
+	filterCart := bson.M{
+		"profileId": profileId,
+	}
+
+	cur, err := s.db.Collection(string(model.CART)).Find(context.Background(), filterCart)
+	if err != nil {
+		return model.ArrMapDataEmpty, err
+	}
+
+	if err := cur.All(context.Background(), &carts); err != nil {
+		return model.ArrMapDataEmpty, err
+	}
+	for _, item := range carts {
+		objectID, _ := primitive.ObjectIDFromHex(item["productId"].(string))
+		ids = append(ids, objectID)
+	}
+
+	var products []map[string]interface{}
+	filterProduct := bson.M{"_id": bson.M{"$in": ids}}
+
+	curProduct, errProduct := s.db.Collection(string(model.PRODUCT)).Find(context.Background(), filterProduct)
+	if errProduct != nil {
+		return model.ArrMapDataEmpty, err
+	}
+
+	if err := curProduct.All(context.Background(), &products); err != nil {
+		return model.ArrMapDataEmpty, err
+	}
+
+	return products, nil
 }
 
 func (s *productService) checkPermissionOfReformist(profileId uint, productId string) (bool, error) {

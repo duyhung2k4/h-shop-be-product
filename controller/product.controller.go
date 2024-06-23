@@ -35,6 +35,14 @@ type ProductController interface {
 	CreateProduct(w http.ResponseWriter, r *http.Request)
 	UpdateProduct(w http.ResponseWriter, r *http.Request)
 	DeleteProduct(w http.ResponseWriter, r *http.Request)
+
+	Heart(w http.ResponseWriter, r *http.Request)
+	IsHeart(w http.ResponseWriter, r *http.Request)
+	GetHeart(w http.ResponseWriter, r *http.Request)
+
+	Cart(w http.ResponseWriter, r *http.Request)
+	IsCart(w http.ResponseWriter, r *http.Request)
+	GetCart(w http.ResponseWriter, r *http.Request)
 }
 
 func (c *productController) GetProductByProfileId(w http.ResponseWriter, r *http.Request) {
@@ -385,6 +393,170 @@ func (c *productController) DeleteProduct(w http.ResponseWriter, r *http.Request
 
 	res := Response{
 		Data:    nil,
+		Message: "OK",
+		Status:  200,
+		Error:   nil,
+	}
+
+	render.JSON(w, r, res)
+}
+
+func (c *productController) Heart(w http.ResponseWriter, r *http.Request) {
+	var payload request.HeartRequest
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		badRequest(w, r, err)
+		return
+	}
+
+	mapDataRequest, errMapData := c.jwtUtils.GetMapData(r)
+	if errMapData != nil {
+		internalServerError(w, r, errMapData)
+		return
+	}
+
+	profileId := uint(mapDataRequest["profile_id"].(float64))
+	err := c.productService.Heart(payload.ProductId, profileId)
+	if err != nil {
+		internalServerError(w, r, err)
+		return
+	}
+
+	res := Response{
+		Data:    nil,
+		Message: "OK",
+		Status:  200,
+		Error:   nil,
+	}
+
+	render.JSON(w, r, res)
+}
+
+func (c *productController) IsHeart(w http.ResponseWriter, r *http.Request) {
+	params := r.URL.Query()
+	productId := params.Get("id")
+	if productId == "" {
+		badRequest(w, r, errors.New("id empty"))
+		return
+	}
+
+	mapDataRequest, errMapData := c.jwtUtils.GetMapData(r)
+	if errMapData != nil {
+		internalServerError(w, r, errMapData)
+		return
+	}
+
+	profileId := uint(mapDataRequest["profile_id"].(float64))
+	isHeart := c.productService.IsHeart(productId, profileId)
+
+	res := Response{
+		Data:    isHeart,
+		Message: "OK",
+		Status:  200,
+		Error:   nil,
+	}
+
+	render.JSON(w, r, res)
+}
+
+func (c *productController) GetHeart(w http.ResponseWriter, r *http.Request) {
+	mapDataRequest, errMapData := c.jwtUtils.GetMapData(r)
+	if errMapData != nil {
+		internalServerError(w, r, errMapData)
+		return
+	}
+
+	profileId := uint(mapDataRequest["profile_id"].(float64))
+
+	data, err := c.productService.GetHeart(profileId)
+	if err != nil {
+		internalServerError(w, r, err)
+		return
+	}
+
+	res := Response{
+		Data:    data,
+		Message: "OK",
+		Status:  200,
+		Error:   nil,
+	}
+
+	render.JSON(w, r, res)
+}
+
+func (c *productController) Cart(w http.ResponseWriter, r *http.Request) {
+	var payload request.CartRequest
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		badRequest(w, r, err)
+		return
+	}
+
+	mapDataRequest, errMapData := c.jwtUtils.GetMapData(r)
+	if errMapData != nil {
+		internalServerError(w, r, errMapData)
+		return
+	}
+
+	profileId := uint(mapDataRequest["profile_id"].(float64))
+	err := c.productService.Cart(payload.ProductId, profileId)
+	if err != nil {
+		internalServerError(w, r, err)
+		return
+	}
+
+	res := Response{
+		Data:    nil,
+		Message: "OK",
+		Status:  200,
+		Error:   nil,
+	}
+
+	render.JSON(w, r, res)
+}
+
+func (c *productController) IsCart(w http.ResponseWriter, r *http.Request) {
+	params := r.URL.Query()
+	productId := params.Get("id")
+	if productId == "" {
+		badRequest(w, r, errors.New("id empty"))
+		return
+	}
+
+	mapDataRequest, errMapData := c.jwtUtils.GetMapData(r)
+	if errMapData != nil {
+		internalServerError(w, r, errMapData)
+		return
+	}
+
+	profileId := uint(mapDataRequest["profile_id"].(float64))
+	isCart := c.productService.IsCart(productId, profileId)
+
+	res := Response{
+		Data:    isCart,
+		Message: "OK",
+		Status:  200,
+		Error:   nil,
+	}
+
+	render.JSON(w, r, res)
+}
+
+func (c *productController) GetCart(w http.ResponseWriter, r *http.Request) {
+	mapDataRequest, errMapData := c.jwtUtils.GetMapData(r)
+	if errMapData != nil {
+		internalServerError(w, r, errMapData)
+		return
+	}
+
+	profileId := uint(mapDataRequest["profile_id"].(float64))
+
+	data, err := c.productService.GetCart(profileId)
+	if err != nil {
+		internalServerError(w, r, err)
+		return
+	}
+
+	res := Response{
+		Data:    data,
 		Message: "OK",
 		Status:  200,
 		Error:   nil,

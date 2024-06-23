@@ -62,6 +62,14 @@ func Router() http.Handler {
 				product.Post("/", productController.CreateProduct)
 				product.Put("/", productController.UpdateProduct)
 				product.Delete("/", productController.DeleteProduct)
+
+				product.Post("/heart", productController.Heart)
+				product.Get("/is-heart", productController.IsHeart)
+				product.Get("/is-heart-list", productController.GetHeart)
+
+				product.Post("/cart", productController.Cart)
+				product.Get("/is-cart", productController.IsCart)
+				product.Get("/is-cart-list", productController.GetCart)
 			})
 
 			protected.Route("/warehouse", func(warehouse chi.Router) {
