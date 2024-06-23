@@ -23,6 +23,7 @@ type productController struct {
 	productService      service.ProductService
 	clientFileGRPC      proto.FileServiceClient
 	warehouseService    proto.WarehouseServiceClient
+	shopService         proto.ShopServiceClient
 	queueProductService service.QueueProductService
 	jwtUtils            utils.JwtUtils
 	redisUtils          utils.RedisUtils
@@ -127,7 +128,16 @@ func (c *productController) CreateProduct(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	product.InfoProduct["profileId"] = uint(mapDataRequest["profile_id"].(float64))
+	profileId := uint(mapDataRequest["profile_id"].(float64))
+
+	result, errGetShop := c.shopService.GetShopByProfileId(r.Context(), &proto.GetShopByProfileIdReq{ProfileId: uint64(profileId)})
+	if errGetShop != nil {
+		internalServerError(w, r, errGetShop)
+		return
+	}
+
+	product.InfoProduct["profileId"] = profileId
+	product.InfoProduct["shopId"] = result.ShopId
 	newProduct, errProduct := c.productService.CreateProduct(product.InfoProduct)
 	if errProduct != nil {
 		internalServerError(w, r, errProduct)
@@ -388,6 +398,7 @@ func NewProductController() ProductController {
 		productService:      service.NewProductService(),
 		clientFileGRPC:      proto.NewFileServiceClient(config.GetConnFileGrpc()),
 		warehouseService:    proto.NewWarehouseServiceClient(config.GetConnWarehouseGrpc()),
+		shopService:         proto.NewShopServiceClient(config.GetConnShopGRPC()),
 		queueProductService: service.NewQueueProductService(),
 		jwtUtils:            utils.NewJwtUtils(),
 		redisUtils:          utils.NewUtilsRedis(),
