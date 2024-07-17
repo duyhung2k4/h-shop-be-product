@@ -79,6 +79,8 @@ func Router() http.Handler {
 			protected.Route("/type-in-warehouse", func(typeInWarehouse chi.Router) {
 				typeInWarehouse.Get("/", typeInWarehouseController.GetTypeInWarehouseByProductId)
 				typeInWarehouse.Post("/", typeInWarehouseController.InsertTypeInWarehouse)
+				typeInWarehouse.Put("/", typeInWarehouseController.UpdateTypeInWarehouse)
+				typeInWarehouse.Delete("/", typeInWarehouseController.DeleteTypeInWarehouse)
 			})
 		})
 	})
