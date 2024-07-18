@@ -22,7 +22,6 @@ type UpdateProductRequest struct {
 
 type DeleteProductRequest struct {
 	ProductId string `json:"productId"`
-	ShopId    uint64 `json:"shopId"`
 }
 
 type HeartRequest struct {
