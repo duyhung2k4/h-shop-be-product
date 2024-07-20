@@ -50,8 +50,8 @@ func (c *warehouseController) UpdateWarehouse(w http.ResponseWriter, r *http.Req
 	}
 
 	result, err := c.grpcWarehouse.Update(context.Background(), &proto.UpdateWarehouseReq{
-		Id:    uint64(payload.Id),
-		Count: uint64(payload.Count),
+		ProductId: payload.ProductId,
+		Count:     uint64(payload.Count),
 	})
 
 	if err != nil {
