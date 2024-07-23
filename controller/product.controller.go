@@ -12,6 +12,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"reflect"
 	"strings"
 	"sync"
 
@@ -160,7 +161,7 @@ func (c *productController) CreateProduct(w http.ResponseWriter, r *http.Request
 		// Create warehouse
 		_, err := c.warehouseService.Insert(context.Background(), &proto.InsertWarehouseReq{
 			ProductId: newProduct["_id"].(primitive.ObjectID).Hex(),
-			Count:     newProduct["count"].(uint64),
+			Count:     uint64(newProduct["count"].(float64)),
 		})
 		if err != nil {
 			errHandle = err
@@ -270,6 +271,7 @@ func (c *productController) UpdateProduct(w http.ResponseWriter, r *http.Request
 
 	go func() {
 		// Create warehouse
+		log.Println("Type of: ", reflect.TypeOf(newProduct["count"]))
 		_, err := c.warehouseService.Update(context.Background(), &proto.UpdateWarehouseReq{
 			ProductId: newProduct["_id"].(string),
 			Count:     uint64(newProduct["count"].(float64)),
